@@ -139,7 +139,11 @@ Améliorations : voir `AMELIORATIONS.md`.
   MinGW de `build.sh`) lancée sous Wine, puis `import -window` sur la fenêtre « Brimstone: ... » ;
   `-DBRIMSTONE_UI_DEMO=<zone>` (`-1` : aucune) et `-DBRIMSTONE_UI_DEMO_PRESET=<n>` forcent une bulle
   d'aide, un préréglage et un historique synthétique. Vérifier que la fenêtre existe avant
-  `import`, sinon c'est l'écran entier qui est pris.
-- Reste : voir `AMELIORATIONS.md` (essais sur un vrai Windows, correctif à proposer à DPF).
+  `import`, sinon c'est l'écran entier qui est pris. La fenêtre s'ouvre sur l'affichage de
+  l'utilisateur (pas d'Xvfb) ; une variante par capture (`BUILD_DIR_SUFFIX=-demo-<n>`).
+- Sous Wine, `APPDATA` est fixé par Wine (`drive_c/users/<nom>/AppData/Roaming`) : une valeur
+  donnée depuis Linux est ignorée ; pour essayer un autre dossier, `_wputenv` dans le programme.
+- Reste : voir `AMELIORATIONS.md` (2e série : A-D, F-H à décider par l'utilisateur ; essais sur un
+  vrai Windows, dont le clic sur la pastille de thème ; correctif à proposer à DPF).
 - Défaut connu, non changé : dans Default (Soft), l'écrêteur arrondit toujours ~1 dB, car il
   commence à 60 % du plafond alors que le maximiseur pousse les crêtes au plafond.
