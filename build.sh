@@ -18,6 +18,11 @@ mkdir -p build
 g++ -O2 -std=gnu++17 -Iplugin -Idpf/distrho -Idpf/dgl -DDISTRHO_PLUGIN_TARGET_EXPORT \
     -DDISTRHO_IS_STANDALONE=0 tests/test_dsp.cpp -o build/test_dsp -lpthread
 ./build/test_dsp
+echo "== Preferences tests (in an empty temporary home)"
+g++ -O2 -std=gnu++17 -Iplugin tests/test_prefs.cpp -o build/test_prefs
+PREFS_HOME=$(mktemp -d)
+env -u XDG_CONFIG_HOME HOME="$PREFS_HOME" ./build/test_prefs
+rm -r "${PREFS_HOME:?}"
 
 echo "== Windows (MinGW-w64)"
 make -j"$JOBS" -C plugin BUILD_DIR_SUFFIX=-win DPF_TARGET_DIR=../bin/windows \

@@ -5,7 +5,8 @@ swh-plugins de Steve Harris), réécrit en C++ avec DPF, interface NanoVG.
 Formats : VST3 et CLAP pour Windows 64 bits ; VST3, CLAP et LV2 pour Linux.
 **Licence : GPL 2 ou ultérieure** (`COPYING`), comme l'original ; DPF est sous ISC (compatible).
 
-![interface](capture_interface.png)
+![interface, thème Ember](capture_interface.png)
+![interface, thème Ash](capture_interface_ash.png)
 
 ## Algorithme
 Cœur identique à l'original :
@@ -74,6 +75,17 @@ donne le niveau de sortie pour un niveau d'entrée stable, tous réglages compri
 **Bulle d'aide sur chaque élément** (boutons, sélecteurs, vu-mètres, courbe, préréglages, Bypass).
 Boutons : glisser verticalement (Maj : fin), molette, double-clic ou Ctrl+clic : défaut,
 **clic droit : saisie au clavier** (Entrée, Échap).
+**Thèmes** : Ember (sombre, d'origine) et Ash (clair : papier cendré, encre anthracite, mêmes
+orange brûlé et ocre), bascule par la pastille EMBER | ASH de l'en-tête, sans effet sur le son.
+Le choix est une **préférence de l'utilisateur**, commune à toutes les instances et à tous les
+projets, non enregistrée avec le projet (décision du 2026-11-24) : fichier `brimstone.conf`
+(`theme=ember` ou `theme=ash`) dans `%APPDATA%\Brimstone\` (Windows) ou
+`$XDG_CONFIG_HOME/brimstone/`, à défaut `~/.config/brimstone/` (Linux) ; fichier absent ou
+illisible : Ember ; écriture impossible : le choix vaut jusqu'à la fermeture de la fenêtre.
+Les autres fenêtres ouvertes changent à leur réouverture. Le désinstalleur laisse ce fichier.
+Couleurs : structure `Theme` de `BrimstoneUI.cpp` (une instance par thème) ; lecture et écriture
+du fichier : `plugin/BrimstonePrefs.hpp`.
+
 Captures : `-DBRIMSTONE_UI_DEMO=<zone>` (et `_PRESET=<n>`) force une bulle d'aide et un préréglage
 dans une version de démonstration ; jamais dans `build.sh`.
 
@@ -101,12 +113,17 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
 - Validateur VST3 de Steinberg (`tools/validate_vst3.sh`) : 47/47 sur le VST3 Linux, 47/47 sur
   le VST3 Windows (validateur compilé avec MinGW, lancé sous Wine).
-- Interface affichée par la version autonome Windows sous Wine (capture ci-dessus ; l'historique y
-  est synthétique, faute d'audio sous Wine).
+- `tests/test_prefs.cpp` (7 cas, lancé par `build.sh` dans un dossier personnel vide) : fichier
+  absent, écriture et relecture des deux thèmes, valeur invalide, lignes inconnues et fins CRLF.
+  Vérifié aussi : `XDG_CONFIG_HOME`, `HOME` absent (écriture refusée sans erreur), Windows sous
+  Wine, y compris un `APPDATA` accentué.
+- Interface affichée par la version autonome Windows sous Wine, thèmes Ember et Ash (captures
+  ci-dessus ; l'historique y est synthétique, faute d'audio sous Wine).
 - Installateur (NSIS 3.09) : installation et désinstallation silencieuses (`/S`) sous Wine :
   VST3 (identique à `bin/windows/`), CLAP, licence, entrée « Programmes » du registre, puis tout retiré.
 - Non vérifié : chargement dans un vrai logiciel audio Windows ; installateur en mode graphique
-  et sur un vrai Windows ; interactions de l'interface (seul l'affichage a été vu) ; macOS.
+  et sur un vrai Windows ; interactions de l'interface (seul l'affichage a été vu ; clic sur
+  la pastille de thème compris) ; macOS. Validateur VST3 non relancé après les thèmes (interface seule).
 
 Améliorations : voir `AMELIORATIONS.md`.
 
@@ -116,7 +133,9 @@ Améliorations : voir `AMELIORATIONS.md`.
 - `./build.sh` refait tout (tests, Windows, Linux, installateur si `makensis`).
 - Validateur de Steinberg : `tools/validate_vst3.sh DOSSIER [windows]` (clone le SDK dans DOSSIER ;
   sous Wine, préfixe propre `DOSSIER/wineprefix`).
-- Captures de l'interface : version autonome Windows (`make -C plugin jack ...` avec les variables
+- Captures de l'interface : options passées par la variable d'environnement `CXXFLAGS`
+  (`-DBRIMSTONE_UI_DEMO=-1 -DBRIMSTONE_UI_DEMO_THEME=1` : thème forcé, jamais enregistré ;
+  `BUILD_DIR_SUFFIX` distinct par variante) ; version autonome Windows (`make -C plugin jack ...` avec les variables
   MinGW de `build.sh`) lancée sous Wine, puis `import -window` sur la fenêtre « Brimstone: ... » ;
   `-DBRIMSTONE_UI_DEMO=<zone>` (`-1` : aucune) et `-DBRIMSTONE_UI_DEMO_PRESET=<n>` forcent une bulle
   d'aide, un préréglage et un historique synthétique. Vérifier que la fenêtre existe avant

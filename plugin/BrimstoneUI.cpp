@@ -11,10 +11,13 @@
  * waveforms, maximizer and clipper reductions; click a legend entry to show / hide it).
  * Knobs: drag vertically (Shift = fine), mouse wheel, double-click or Ctrl+click = default,
  * right-click = type a value (Enter / Escape).  Every control has a tooltip.
+ * Two themes, Ember (dark) and Ash (light), switched by the EMBER | ASH pill of the header; the
+ * choice is a preference of the user (BrimstonePrefs.hpp), not saved with the project.
  */
 
 #include "DistrhoUI.hpp"
 #include "BrimstoneParams.hpp"
+#include "BrimstonePrefs.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -32,17 +35,87 @@ static const float kPi = 3.14159265358979f;
 static const float kArcStart = 0.75f * kPi;
 static const float kArcSweep = 1.5f * kPi;
 
-// Palette
-static const Color cBg0(18, 7, 8);
-static const Color cBg1(38, 12, 12);
-static const Color cPanel(26, 14, 15);
-static const Color cPanelEdge(70, 28, 26);
-static const Color cText(236, 220, 212);
-static const Color cDim(150, 116, 108);
-static const Color cFaint(96, 72, 68);
-static const Color cHot(255, 76, 28);
-static const Color cGold(255, 184, 52);
-static const Color cDeep(150, 20, 16);
+// ------------------------------------------------------------------------------------------------
+// Themes: every colour of the interface.  Ember (dark, the original look) and Ash (light, same
+// identity: burnt orange and ochre on ash-grey paper).  The choice is a preference of the user
+// (BrimstonePrefs.hpp), switched by the EMBER | ASH pill of the header.
+
+enum { kSeriesIn = 0, kSeriesOut, kSeriesGR, kSeriesClip, kSeriesDiff, kNumSeries };
+
+struct Theme {
+    // background, header, panels
+    Color bg0, bg1, bgGlow, header0, header1, headerLine, panel0, panel1, panelEdge, panelShadow, divider;
+    // text: normal, secondary, faint, on an accent fill
+    Color text, dim, faint, onAccent;
+    // accents
+    Color hot, gold, deep, arrow, brandGlow;
+    // buttons, LEDs, segmented selectors, recessed wells (preset box, selectors / plots / meters)
+    Color btnOn0, btnOn1, btnOff0, btnOff1, btnOnEdge, ledGlow, ledGlowEnd, ledOn, ledOff;
+    Color well, plot, deepWell, hoverEdge, sel0, sel1;
+    // knobs
+    Color knobShadow, knob0, knob1, knobIn0, knobIn1, knobEdge, arcGlow, arcGlowActive, pointerGlow, pointer;
+    // transfer curve, meters, history
+    Color grid, gridZero, diagonal, ceilLine, curveGlow, dotGlow, dotGlowEnd, dotCore;
+    Color meterEdge, meterTick, histGrid, histCeil;
+    Color series[kNumSeries];
+    // tooltip; label of the Bypass button when bypassed
+    Color tipBg, tipEdge, bypassText;
+};
+
+static Color transparent(const Color& c)
+{
+    Color t(c);
+    t.alpha = 0.0f;
+    return t;
+}
+
+static const Theme kThemes[BrimstonePrefs::kThemeCount] = {
+    {   // Ember
+        Color(18, 7, 8), Color(38, 12, 12), Color(170, 40, 10, 0.26f), Color(46, 14, 12), Color(22, 8, 8),
+        Color(Color(255, 76, 28), Color(0, 0, 0), 0.35f),
+        Color(34, 17, 18), Color(26, 14, 15), Color(70, 28, 26), Color(0, 0, 0, 0.55f), Color(70, 28, 26, 0.7f),
+        Color(236, 220, 212), Color(150, 116, 108), Color(96, 72, 68), Color(236, 220, 212),
+        Color(255, 76, 28), Color(255, 184, 52), Color(150, 20, 16), Color(255, 110, 40, 0.7f),
+        Color(255, 70, 20, 0.9f),
+        Color(120, 30, 14), Color(70, 14, 8), Color(40, 22, 22), Color(24, 13, 14), Color(255, 110, 40, 0.8f),
+        Color(255, 120, 40, 0.8f), Color(255, 60, 10, 0.0f), Color(255, 210, 120), Color(60, 30, 28),
+        Color(14, 6, 7), Color(12, 5, 6), Color(10, 4, 5), Color(255, 110, 40, 0.6f),
+        Color(150, 40, 16), Color(90, 18, 10),
+        Color(0, 0, 0, 0.7f), Color(74, 52, 50), Color(24, 16, 17), Color(62, 44, 42), Color(20, 13, 14),
+        Color(0, 0, 0, 0.6f), Color(255, 70, 20, 0.18f), Color(255, 70, 20, 0.30f), Color(255, 90, 30, 0.35f),
+        Color(255, 140, 70),
+        Color(70, 34, 32, 0.6f), Color(120, 50, 40, 0.8f), Color(120, 90, 85, 0.35f), Color(255, 200, 120, 0.25f),
+        Color(255, 70, 20, 0.22f), Color(255, 200, 80, 0.8f), Color(255, 70, 20, 0.0f), Color(255, 236, 190),
+        Color(60, 26, 24), Color(255, 220, 160, 0.6f), Color(70, 34, 32, 0.5f), Color(255, 200, 120, 0.35f),
+        { Color(170, 120, 100), Color(255, 184, 52), Color(255, 76, 28), Color(120, 200, 255), Color(140, 225, 150) },
+        Color(8, 3, 4, 0.95f), Color(255, 110, 40, 0.6f), Color(255, 184, 52),
+    },
+    {   // Ash
+        Color(226, 220, 211), Color(237, 232, 225), Color(194, 65, 12, 0.07f), Color(246, 242, 236),
+        Color(232, 226, 218), Color(194, 65, 12, 0.55f),
+        Color(250, 247, 243), Color(242, 238, 232), Color(201, 191, 179), Color(80, 60, 45, 0.16f),
+        Color(201, 191, 179, 0.8f),
+        Color(42, 36, 33), Color(110, 98, 91), Color(150, 140, 132), Color(255, 248, 240),
+        Color(194, 65, 12), Color(150, 88, 12), Color(138, 28, 12), Color(194, 65, 12, 0.75f),
+        Color(194, 65, 12, 0.25f),
+        Color(206, 82, 26), Color(160, 48, 12), Color(252, 250, 247), Color(232, 226, 218),
+        Color(194, 65, 12, 0.9f),
+        Color(255, 120, 40, 0.55f), Color(255, 120, 40, 0.0f), Color(230, 90, 20), Color(196, 186, 176),
+        Color(232, 226, 218), Color(250, 248, 245), Color(214, 207, 198), Color(194, 65, 12, 0.7f),
+        Color(206, 82, 26), Color(160, 48, 12),
+        Color(80, 60, 45, 0.30f), Color(253, 251, 248), Color(214, 207, 198), Color(248, 245, 241),
+        Color(222, 215, 206),
+        Color(120, 100, 85, 0.45f), Color(194, 65, 12, 0.12f), Color(194, 65, 12, 0.22f), Color(194, 65, 12, 0.18f),
+        Color(194, 65, 12),
+        Color(150, 135, 120, 0.35f), Color(150, 110, 90, 0.7f), Color(110, 98, 91, 0.35f), Color(168, 101, 15, 0.45f),
+        Color(194, 65, 12, 0.15f), Color(230, 120, 40, 0.6f), Color(230, 120, 40, 0.0f), Color(138, 28, 12),
+        Color(190, 180, 168), Color(138, 28, 12, 0.7f), Color(150, 135, 120, 0.3f), Color(168, 101, 15, 0.6f),
+        { Color(140, 110, 96), Color(150, 88, 12), Color(194, 65, 12), Color(31, 111, 178), Color(46, 139, 78) },
+        Color(255, 253, 249, 0.97f), Color(194, 65, 12, 0.6f), Color(255, 236, 200),
+    },
+};
+
+static const char* const kThemeNames[BrimstonePrefs::kThemeCount] = { "EMBER", "ASH" };
 
 // ------------------------------------------------------------------------------------------------
 // Layout
@@ -93,10 +166,11 @@ static const Rect kGraph   = { 348, 96, 244, 200 };
 static const Rect kClip    = { 400, 418, 192, 22 };
 static const Rect kOvers   = { 734, 326, 138, 22 };
 static const Rect kMatch   = { 622, 364, 120, 24 };
-static const Rect kPrevBtn = { 462, 16, 26, 26 };
-static const Rect kPreset  = { 490, 16, 180, 26 };
-static const Rect kNextBtn = { 672, 16, 26, 26 };
-static const Rect kBypass  = { 724, 14, 152, 30 };
+static const Rect kPrevBtn = { 456, 16, 26, 26 };
+static const Rect kPreset  = { 484, 16, 150, 26 };
+static const Rect kNextBtn = { 636, 16, 26, 26 };
+static const Rect kTheme   = { 674, 17, 76, 24 };
+static const Rect kBypass  = { 762, 14, 114, 30 };
 
 static const float kMeterX[4] = { 642.0f, 700.0f, 758.0f, 816.0f };   // IN, GR, CLIP, OUT
 static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
@@ -104,7 +178,7 @@ static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
 // hover zones with a tooltip (knobs are handled separately)
 enum {
     kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZonePreset,
-    kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kNumZones
+    kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kNumZones
 };
 
 struct Zone {
@@ -140,12 +214,14 @@ static const Zone kZones[kNumZones] = {
       "Input and output peak levels rise from the bottom (dBFS, right scale; dashed: ceiling). "
       "Reductions of the maximizer and of the clipper hang from the top (dB, left scale). "
       "out - in: total gain, output minus input peak (dB, centred scale inside on the right)." },
+    { kTheme, "THEME",
+      "EMBER: dark. ASH: light. Kept for all instances and projects (a setting of this computer, "
+      "not of the project); other open windows change when reopened." },
 };
 
 static const int kHistorySize = 286;   // ~7 s at 40 points / s
 
 // history series, each can be hidden by clicking its legend entry
-enum { kSeriesIn = 0, kSeriesOut, kSeriesGR, kSeriesClip, kSeriesDiff, kNumSeries };
 static const char* const kSeriesNames[kNumSeries] = { "input", "output", "maximizer GR", "clipper GR",
                                                       "out - in" };
 static const float kNoValue = -1000.0f;            // gap in a series (difference on silence)
@@ -177,6 +253,12 @@ public:
         }
         loadSharedResources();
         fFont = findFont(NANOVG_DEJAVU_SANS_TTF);
+#ifdef BRIMSTONE_UI_DEMO_THEME
+        fTheme = BRIMSTONE_UI_DEMO_THEME;   // screenshots: forced, never saved
+#else
+        fTheme = BrimstonePrefs::loadTheme();
+#endif
+        fT = &kThemes[fTheme];
         fLastPush = std::chrono::steady_clock::now();
 #ifdef BRIMSTONE_UI_DEMO
         // screenshots only (-DBRIMSTONE_UI_DEMO=<hover id> [-DBRIMSTONE_UI_DEMO_PRESET=<index>]):
@@ -309,6 +391,7 @@ protected:
         if (kPrevBtn.contains(x, y)) { applyPreset((fPreset + kBrimstonePresetCount - 1) % kBrimstonePresetCount); return true; }
         if (kNextBtn.contains(x, y) || kPreset.contains(x, y)) { applyPreset((fPreset + 1) % kBrimstonePresetCount); return true; }
         if (kBypass.contains(x, y)) { toggle(kParamBypass); return true; }
+        if (kTheme.contains(x, y)) { setTheme(static_cast<int>(segmentAt(kTheme, x, BrimstonePrefs::kThemeCount))); return true; }
         if (kMatch.contains(x, y)) { toggle(kParamMatch); return true; }
         if (kUnit.contains(x, y)) { setDecayUnit(x > kUnit.x + kUnit.w * 0.5f ? 1 : 0); return true; }
         if (kStereo.contains(x, y)) { setOnce(kParamStereo, segmentAt(kStereo, x, 3)); return true; }
@@ -495,6 +578,19 @@ private:
 
     void toggle(const int p) { setOnce(p, fValues[p] > 0.5f ? 0.0f : 1.0f); }
 
+    // interface only: no parameter, no effect on the sound; saved as a preference of the user
+    void setTheme(const int theme)
+    {
+        if (theme == fTheme)
+            return;
+        fTheme = theme;
+        fT = &kThemes[theme];
+#ifndef BRIMSTONE_UI_DEMO_THEME
+        BrimstonePrefs::saveTheme(theme);
+#endif
+        repaint();
+    }
+
     void setDecayUnit(const int unit)
     {
         if ((fValues[kParamDecayUnit] > 0.5f) == (unit == 1))
@@ -592,15 +688,15 @@ private:
         rect(r.x - 10, r.y - 10, r.w + 20, r.h + 24);
         roundedRect(r.x, r.y, r.w, r.h, 8);
         pathWinding(CW);
-        fillPaint(boxGradient(r.x, r.y + 3, r.w, r.h, 10, 14, Color(0, 0, 0, 0.55f), Color(0, 0, 0, 0.0f)));
+        fillPaint(boxGradient(r.x, r.y + 3, r.w, r.h, 10, 14, fT->panelShadow, transparent(fT->panelShadow)));
         fill();
 
         beginPath();
         roundedRect(r.x, r.y, r.w, r.h, 8);
-        fillPaint(linearGradient(r.x, r.y, r.x, r.y + r.h, Color(34, 17, 18), cPanel));
+        fillPaint(linearGradient(r.x, r.y, r.x, r.y + r.h, fT->panel0, fT->panel1));
         fill();
         strokeWidth(1.0f);
-        strokeColor(cPanelEdge);
+        strokeColor(fT->panelEdge);
         stroke();
     }
 
@@ -610,11 +706,11 @@ private:
         const float cx = r.x + 18, cy = r.y + 17;
         beginPath();
         circle(cx, cy, 8.5f);
-        fillPaint(linearGradient(0, cy - 8, 0, cy + 8, cHot, cDeep));
+        fillPaint(linearGradient(0, cy - 8, 0, cy + 8, fT->hot, fT->deep));
         fill();
-        label(cx, cy + 0.5f, 10, cText, ALIGN_CENTER | ALIGN_MIDDLE, number);
-        label(cx + 15, cy, 11, cText, ALIGN_LEFT | ALIGN_MIDDLE, title, 2);
-        label(r.x + r.w - 12, cy, 9, cFaint, ALIGN_RIGHT | ALIGN_MIDDLE, subtitle, 0.5f);
+        label(cx, cy + 0.5f, 10, fT->onAccent, ALIGN_CENTER | ALIGN_MIDDLE, number);
+        label(cx + 15, cy, 11, fT->text, ALIGN_LEFT | ALIGN_MIDDLE, title, 2);
+        label(r.x + r.w - 12, cy, 9, fT->faint, ALIGN_RIGHT | ALIGN_MIDDLE, subtitle, 0.5f);
     }
 
     void divider(const float x0, const float x1, const float y)
@@ -623,7 +719,7 @@ private:
         moveTo(x0, y + 0.5f);
         lineTo(x1, y + 0.5f);
         strokeWidth(1.0f);
-        strokeColor(Color(70, 28, 26, 0.7f));
+        strokeColor(fT->divider);
         stroke();
     }
 
@@ -635,7 +731,7 @@ private:
         lineTo(x + 4, y);
         lineTo(x - 3, y + 7);
         closePath();
-        fillColor(Color(255, 110, 40, 0.7f));
+        fillColor(fT->arrow);
         fill();
     }
 
@@ -644,14 +740,14 @@ private:
         beginPath();
         roundedRect(r.x, r.y, r.w, r.h, 5);
         fillPaint(linearGradient(r.x, r.y, r.x, r.y + r.h,
-                                 on ? Color(120, 30, 14) : Color(40, 22, 22),
-                                 on ? Color(70, 14, 8) : Color(24, 13, 14)));
+                                 on ? fT->btnOn0 : fT->btnOff0,
+                                 on ? fT->btnOn1 : fT->btnOff1));
         fill();
         strokeWidth(1.0f);
-        strokeColor(on ? Color(255, 110, 40, 0.8f) : cPanelEdge);
+        strokeColor(on ? fT->btnOnEdge : fT->panelEdge);
         stroke();
         if (str)
-            label(r.x + r.w * 0.5f, r.y + r.h * 0.5f, size, on ? cText : cDim, ALIGN_CENTER | ALIGN_MIDDLE, str, 1);
+            label(r.x + r.w * 0.5f, r.y + r.h * 0.5f, size, on ? fT->onAccent : fT->dim, ALIGN_CENTER | ALIGN_MIDDLE, str, 1);
     }
 
     void led(const float x, const float y, const bool on)
@@ -660,12 +756,12 @@ private:
         {
             beginPath();
             circle(x, y, 10);
-            fillPaint(radialGradient(x, y, 2, 10, Color(255, 120, 40, 0.8f), Color(255, 60, 10, 0.0f)));
+            fillPaint(radialGradient(x, y, 2, 10, fT->ledGlow, fT->ledGlowEnd));
             fill();
         }
         beginPath();
         circle(x, y, 4.0f);
-        fillColor(on ? Color(255, 210, 120) : Color(60, 30, 28));
+        fillColor(on ? fT->ledOn : fT->ledOff);
         fill();
     }
 
@@ -675,10 +771,10 @@ private:
         const float sw = r.w / count;
         beginPath();
         roundedRect(r.x, r.y, r.w, r.h, 5);
-        fillColor(Color(14, 6, 7));
+        fillColor(fT->well);
         fill();
         strokeWidth(1.0f);
-        strokeColor(fHover == hoverOf(r) ? Color(255, 110, 40, 0.6f) : cPanelEdge);
+        strokeColor(fHover == hoverOf(r) ? fT->hoverEdge : fT->panelEdge);
         stroke();
         for (int i = 0; i < count; ++i)
         {
@@ -686,10 +782,10 @@ private:
             {
                 beginPath();
                 roundedRect(r.x + i * sw + 1.5f, r.y + 1.5f, sw - 3.0f, r.h - 3.0f, 4);
-                fillPaint(linearGradient(0, r.y, 0, r.y + r.h, Color(150, 40, 16), Color(90, 18, 10)));
+                fillPaint(linearGradient(0, r.y, 0, r.y + r.h, fT->sel0, fT->sel1));
                 fill();
             }
-            label(r.x + (i + 0.5f) * sw, r.y + r.h * 0.5f, size, i == selected ? cText : cDim,
+            label(r.x + (i + 0.5f) * sw, r.y + r.h * 0.5f, size, i == selected ? fT->onAccent : fT->dim,
                   ALIGN_CENTER | ALIGN_MIDDLE, labels[i], 0.5f);
         }
     }
@@ -708,12 +804,12 @@ private:
     {
         beginPath();
         rect(0, 0, kW, kH);
-        fillPaint(linearGradient(0, 0, 0, kH, cBg1, cBg0));
+        fillPaint(linearGradient(0, 0, 0, kH, fT->bg1, fT->bg0));
         fill();
 
         beginPath();
         rect(0, 0, kW, kH);
-        fillPaint(radialGradient(kW * 0.5f, kH + 80, 40, 560, Color(170, 40, 10, 0.26f), Color(0, 0, 0, 0.0f)));
+        fillPaint(radialGradient(kW * 0.5f, kH + 80, 40, 560, fT->bgGlow, transparent(fT->bgGlow)));
         fill();
 
         panel(kSecMax);
@@ -728,12 +824,12 @@ private:
     {
         beginPath();
         rect(0, 0, kW, 56);
-        fillPaint(linearGradient(0, 0, 0, 56, Color(46, 14, 12), Color(22, 8, 8)));
+        fillPaint(linearGradient(0, 0, 0, 56, fT->header0, fT->header1));
         fill();
         beginPath();
         moveTo(0, 56.5f);
         lineTo(kW, 56.5f);
-        strokeColor(Color(cHot, Color(0, 0, 0), 0.35f));
+        strokeColor(fT->headerLine);
         strokeWidth(1.0f);
         stroke();
 
@@ -742,34 +838,37 @@ private:
         textLetterSpacing(6);
         textAlign(ALIGN_LEFT | ALIGN_MIDDLE);
         fontBlur(10);
-        fillColor(Color(255, 70, 20, 0.9f));
+        fillColor(fT->brandGlow);
         text(26, 29, "BRIMSTONE", nullptr);
         fontBlur(0);
-        fillPaint(linearGradient(0, 14, 0, 44, cGold, cHot));
+        fillPaint(linearGradient(0, 14, 0, 44, fT->gold, fT->hot));
         text(26, 29, "BRIMSTONE", nullptr);
-        label(256, 31, 14, cDim, ALIGN_LEFT | ALIGN_MIDDLE, "MAXIMIZER", 5);
+        label(256, 31, 14, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "MAXIMIZER", 5);
 
         // preset browser
-        label(kPrevBtn.x - 10, kPrevBtn.y + kPrevBtn.h * 0.5f, 9, cFaint, ALIGN_RIGHT | ALIGN_MIDDLE, "PRESET", 1);
+        label(kPrevBtn.x - 10, kPrevBtn.y + kPrevBtn.h * 0.5f, 9, fT->faint, ALIGN_RIGHT | ALIGN_MIDDLE, "PRESET", 1);
         button(kPrevBtn, false, "<", 13);
         button(kNextBtn, false, ">", 13);
         beginPath();
         roundedRect(kPreset.x, kPreset.y, kPreset.w, kPreset.h, 5);
-        fillColor(Color(14, 6, 7));
+        fillColor(fT->well);
         fill();
         strokeWidth(1.0f);
-        strokeColor(cPanelEdge);
+        strokeColor(fT->panelEdge);
         stroke();
         char name[64];
         std::snprintf(name, sizeof(name), "%s%s", kBrimstonePresets[fPreset].name, presetModified() ? " *" : "");
-        label(kPreset.x + kPreset.w * 0.5f, kPreset.y + kPreset.h * 0.5f, 12, cText,
+        label(kPreset.x + kPreset.w * 0.5f, kPreset.y + kPreset.h * 0.5f, 12, fT->text,
               ALIGN_CENTER | ALIGN_MIDDLE, name, 0.5f);
+
+        // theme
+        segmented(kTheme, kThemeNames, BrimstonePrefs::kThemeCount, fTheme, 9);
 
         // bypass
         const bool bypassed = fValues[kParamBypass] > 0.5f;
         button(kBypass, bypassed, nullptr);
         led(kBypass.x + 18, kBypass.y + kBypass.h * 0.5f, !bypassed);
-        label(kBypass.x + kBypass.w * 0.5f + 10, kBypass.y + kBypass.h * 0.5f, 12, bypassed ? cGold : cText,
+        label(kBypass.x + kBypass.w * 0.5f + 10, kBypass.y + kBypass.h * 0.5f, 12, bypassed ? fT->bypassText : fT->text,
               ALIGN_CENTER | ALIGN_MIDDLE, bypassed ? "BYPASSED" : "ACTIVE", 2);
     }
 
@@ -787,13 +886,13 @@ private:
 
         divider(kSecMax.x + 12, kSecMax.x + kSecMax.w - 12, 312);
         drawKnob(kKnobDrive);
-        label(kStereo.x, kStereo.y - 11, 10, cDim, ALIGN_LEFT | ALIGN_MIDDLE, "STEREO", 1);
+        label(kStereo.x, kStereo.y - 11, 10, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "STEREO", 1);
         const char* const stereo[3] = { "LINK", "L / R", "M / S" };
         segmented(kStereo, stereo, 3, static_cast<int>(std::lround(fValues[kParamStereo])), 10);
         globalAlpha(1.0f);
 
         if (!active)
-            label(kSecMax.x + kSecMax.w * 0.5f, 430, 10, cGold, ALIGN_CENTER | ALIGN_MIDDLE,
+            label(kSecMax.x + kSecMax.w * 0.5f, 430, 10, fT->gold, ALIGN_CENTER | ALIGN_MIDDLE,
                   "OFF: mix at 0 % (pure clipper)", 0.5f);
     }
 
@@ -805,7 +904,7 @@ private:
         drawKnob(kKnobMix);
         drawKnob(kKnobGain);
         drawKnob(kKnobCeiling);
-        label(kSecOut.x + 12, kClip.y + kClip.h * 0.5f, 10, cDim, ALIGN_LEFT | ALIGN_MIDDLE, "CLIP", 1);
+        label(kSecOut.x + 12, kClip.y + kClip.h * 0.5f, 10, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "CLIP", 1);
         const char* const clip[3] = { "OFF", "HARD", "SOFT" };
         segmented(kClip, clip, 3, static_cast<int>(std::lround(fValues[kParamClip])), 10);
     }
@@ -816,26 +915,26 @@ private:
         drawMeters();
         divider(kSecMon.x + 12, kSecMon.x + kSecMon.w - 12, 312);
 
-        label(kSecMon.x + 12, kOvers.y + kOvers.h * 0.5f, 10, cDim, ALIGN_LEFT | ALIGN_MIDDLE, "OVERSAMPLING", 1);
+        label(kSecMon.x + 12, kOvers.y + kOvers.h * 0.5f, 10, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "OVERSAMPLING", 1);
         const char* const os[3] = { "1x", "2x", "4x" };
         segmented(kOvers, os, 3, static_cast<int>(std::lround(fValues[kParamOversampling])), 10);
 
         const bool match = fValues[kParamMatch] > 0.5f;
         button(kMatch, match, nullptr);
         led(kMatch.x + 14, kMatch.y + kMatch.h * 0.5f, match);
-        label(kMatch.x + kMatch.w * 0.5f + 8, kMatch.y + kMatch.h * 0.5f, 10, match ? cText : cDim,
+        label(kMatch.x + kMatch.w * 0.5f + 8, kMatch.y + kMatch.h * 0.5f, 10, match ? fT->onAccent : fT->dim,
               ALIGN_CENTER | ALIGN_MIDDLE, "LEVEL MATCH", 1);
         char loud[40];
         std::snprintf(loud, sizeof(loud), "%+.1f dB louder", fValues[kParamMeterLoud]);
-        label(kMatch.x + kMatch.w + 12, kMatch.y + kMatch.h * 0.5f, 10, cGold, ALIGN_LEFT | ALIGN_MIDDLE, loud);
+        label(kMatch.x + kMatch.w + 12, kMatch.y + kMatch.h * 0.5f, 10, fT->gold, ALIGN_LEFT | ALIGN_MIDDLE, loud);
 
         char lat[64];
         const double sr = getSampleRate() > 0.0 ? getSampleRate() : 44100.0;
         std::snprintf(lat, sizeof(lat), "latency %.0f samples (%.2f ms)", fValues[kParamLatency],
                       fValues[kParamLatency] * 1000.0 / sr);
-        label(kSecMon.x + 12, 408, 9, cDim, ALIGN_LEFT | ALIGN_MIDDLE, lat, 0.5f);
-        label(kSecMon.x + 12, 424, 9, cFaint, ALIGN_LEFT | ALIGN_MIDDLE, "knobs: drag, wheel, shift = fine", 0.5f);
-        label(kSecMon.x + 12, 438, 9, cFaint, ALIGN_LEFT | ALIGN_MIDDLE,
+        label(kSecMon.x + 12, 408, 9, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, lat, 0.5f);
+        label(kSecMon.x + 12, 424, 9, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "knobs: drag, wheel, shift = fine", 0.5f);
+        label(kSecMon.x + 12, 438, 9, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE,
               "double-click: reset, right-click: type", 0.5f);
     }
 
@@ -854,7 +953,7 @@ private:
         arc(k.cx, k.cy, track, kArcStart, kArcStart + kArcSweep, CW);
         lineCap(ROUND);
         strokeWidth(tw);
-        strokeColor(Color(10, 4, 5));
+        strokeColor(fT->deepWell);
         stroke();
 
         if (n > 0.001f)
@@ -862,33 +961,33 @@ private:
             beginPath();
             arc(k.cx, k.cy, track, kArcStart, a, CW);
             strokeWidth(tw * 3.2f);
-            strokeColor(Color(255, 70, 20, active ? 0.30f : 0.18f));
+            strokeColor(active ? fT->arcGlowActive : fT->arcGlow);
             stroke();
 
             beginPath();
             arc(k.cx, k.cy, track, kArcStart, a, CW);
             strokeWidth(tw);
-            strokePaint(linearGradient(k.cx - track, k.cy + track, k.cx + track, k.cy - track, cDeep,
-                                       active ? cGold : Color(cGold, cHot, 0.4f)));
+            strokePaint(linearGradient(k.cx - track, k.cy + track, k.cx + track, k.cy - track, fT->deep,
+                                       active ? fT->gold : Color(fT->gold, fT->hot, 0.4f)));
             stroke();
         }
 
         beginPath();
         circle(k.cx, k.cy + 4, k.r + 2);
-        fillPaint(radialGradient(k.cx, k.cy + 4, k.r - 4, k.r + 8, Color(0, 0, 0, 0.7f), Color(0, 0, 0, 0.0f)));
+        fillPaint(radialGradient(k.cx, k.cy + 4, k.r - 4, k.r + 8, fT->knobShadow, transparent(fT->knobShadow)));
         fill();
 
         beginPath();
         circle(k.cx, k.cy, k.r);
-        fillPaint(linearGradient(k.cx, k.cy - k.r, k.cx, k.cy + k.r, Color(74, 52, 50), Color(24, 16, 17)));
+        fillPaint(linearGradient(k.cx, k.cy - k.r, k.cx, k.cy + k.r, fT->knob0, fT->knob1));
         fill();
         beginPath();
         circle(k.cx, k.cy, k.r * 0.84f);
         fillPaint(radialGradient(k.cx - k.r * 0.3f, k.cy - k.r * 0.4f, 2, k.r * 1.1f,
-                                 Color(62, 44, 42), Color(20, 13, 14)));
+                                 fT->knobIn0, fT->knobIn1));
         fill();
         strokeWidth(1.0f);
-        strokeColor(Color(0, 0, 0, 0.6f));
+        strokeColor(fT->knobEdge);
         stroke();
 
         const float ca = std::cos(a), sa = std::sin(a);
@@ -897,10 +996,10 @@ private:
         lineTo(k.cx + ca * k.r * 0.78f, k.cy + sa * k.r * 0.78f);
         lineCap(ROUND);
         strokeWidth(big ? 4.0f : 3.0f);
-        strokeColor(Color(255, 90, 30, 0.35f));
+        strokeColor(fT->pointerGlow);
         stroke();
         strokeWidth(big ? 2.2f : 1.8f);
-        strokeColor(active ? cGold : Color(255, 140, 70));
+        strokeColor(active ? fT->gold : fT->pointer);
         stroke();
 
         char buf[32];
@@ -909,7 +1008,7 @@ private:
         int align;
         if (k.labelRight)
         {
-            label(k.cx + k.r + 16, k.cy - 9, 12, cText, ALIGN_LEFT | ALIGN_MIDDLE, k.label, 2);
+            label(k.cx + k.r + 16, k.cy - 9, 12, fT->text, ALIGN_LEFT | ALIGN_MIDDLE, k.label, 2);
             vx = k.cx + k.r + 16;
             vy = k.cy + 9;
             align = ALIGN_LEFT | ALIGN_MIDDLE;
@@ -917,7 +1016,7 @@ private:
         else
         {
             const float gap = big ? 26.0f : 17.0f;
-            label(k.cx, k.cy + k.r + gap, big ? 13 : 11, cText, ALIGN_CENTER | ALIGN_MIDDLE, k.label, big ? 3 : 1.5f);
+            label(k.cx, k.cy + k.r + gap, big ? 13 : 11, fT->text, ALIGN_CENTER | ALIGN_MIDDLE, k.label, big ? 3 : 1.5f);
             vx = k.cx;
             vy = k.cy + k.r + gap + (big ? 17.0f : 15.0f);
             align = ALIGN_CENTER | ALIGN_MIDDLE;
@@ -928,18 +1027,18 @@ private:
             const float bw = 76.0f, bx = k.labelRight ? vx - 4 : vx - bw * 0.5f;
             beginPath();
             roundedRect(bx, vy - 10, bw, 20, 4);
-            fillColor(Color(10, 4, 5));
+            fillColor(fT->deepWell);
             fill();
             strokeWidth(1.0f);
-            strokeColor(cGold);
+            strokeColor(fT->gold);
             stroke();
             char e[40];
             std::snprintf(e, sizeof(e), "%s_", fEditText);
-            label(bx + bw * 0.5f, vy, 12, cGold, ALIGN_CENTER | ALIGN_MIDDLE, e);
+            label(bx + bw * 0.5f, vy, 12, fT->gold, ALIGN_CENTER | ALIGN_MIDDLE, e);
         }
         else
         {
-            label(vx, vy, big ? 12 : 11, active ? cGold : cDim, align, buf);
+            label(vx, vy, big ? 12 : 11, active ? fT->gold : fT->dim, align, buf);
         }
     }
 
@@ -978,7 +1077,7 @@ private:
 
         beginPath();
         rect(x0, y0, w, h);
-        fillColor(Color(12, 5, 6));
+        fillColor(fT->plot);
         fill();
 
         strokeWidth(1.0f);
@@ -989,26 +1088,26 @@ private:
             lineTo(gx(db) + 0.5f, y0 + h);
             moveTo(x0, gy(db) + 0.5f);
             lineTo(x0 + w, gy(db) + 0.5f);
-            strokeColor(db == 0.0f ? Color(120, 50, 40, 0.8f) : Color(70, 34, 32, 0.6f));
+            strokeColor(db == 0.0f ? fT->gridZero : fT->grid);
             stroke();
 
             char buf[8];
             std::snprintf(buf, sizeof(buf), "%.0f", db);
-            label(x0 - 4, gy(db), 9, cDim, ALIGN_RIGHT | ALIGN_MIDDLE, buf);
-            label(gx(db), y0 + h + 9, 9, cDim, ALIGN_CENTER | ALIGN_MIDDLE, buf);
+            label(x0 - 4, gy(db), 9, fT->dim, ALIGN_RIGHT | ALIGN_MIDDLE, buf);
+            label(gx(db), y0 + h + 9, 9, fT->dim, ALIGN_CENTER | ALIGN_MIDDLE, buf);
         }
 
         beginPath();
         moveTo(gx(lo), gy(lo));
         lineTo(gx(hi), gy(hi));
-        strokeColor(Color(120, 90, 85, 0.35f));
+        strokeColor(fT->diagonal);
         stroke();
 
         // ceiling line
         beginPath();
         moveTo(x0, gy(fValues[kParamCeiling]) + 0.5f);
         lineTo(x0 + w, gy(fValues[kParamCeiling]) + 0.5f);
-        strokeColor(Color(255, 200, 120, 0.25f));
+        strokeColor(fT->ceilLine);
         stroke();
 
         save();
@@ -1025,7 +1124,7 @@ private:
             lineCap(ROUND);
             lineJoin(ROUND);
             strokeWidth(pass == 0 ? 7.0f : 2.2f);
-            strokeColor(pass == 0 ? Color(255, 70, 20, 0.22f) : cGold);
+            strokeColor(pass == 0 ? fT->curveGlow : fT->gold);
             stroke();
         }
 
@@ -1035,16 +1134,16 @@ private:
             const float px = gx(in), py = gy(curve(in));
             beginPath();
             circle(px, py, 9);
-            fillPaint(radialGradient(px, py, 1, 9, Color(255, 200, 80, 0.8f), Color(255, 70, 20, 0.0f)));
+            fillPaint(radialGradient(px, py, 1, 9, fT->dotGlow, fT->dotGlowEnd));
             fill();
             beginPath();
             circle(px, py, 3);
-            fillColor(Color(255, 236, 190));
+            fillColor(fT->dotCore);
             fill();
         }
         restore();
 
-        label(kGraph.x + kGraph.w * 0.5f + 8, kGraph.y + kGraph.h - 6, 9, cDim, ALIGN_CENTER | ALIGN_MIDDLE,
+        label(kGraph.x + kGraph.w * 0.5f + 8, kGraph.y + kGraph.h - 6, 9, fT->dim, ALIGN_CENTER | ALIGN_MIDDLE,
               "INPUT dB  ->  OUTPUT dB", 1);
     }
 
@@ -1053,10 +1152,10 @@ private:
         const float y = kMeterY, h = kMeterH, w = kMeterW;
         beginPath();
         roundedRect(x, y, w, h, 3);
-        fillColor(Color(10, 4, 5));
+        fillColor(fT->deepWell);
         fill();
         strokeWidth(1.0f);
-        strokeColor(Color(60, 26, 24));
+        strokeColor(fT->meterEdge);
         stroke();
 
         const float f = std::fmin(std::fmax(frac, 0.0f), 1.0f);
@@ -1067,14 +1166,14 @@ private:
             beginPath();
             roundedRect(x + 2, fy, w - 4, fh, 2);
             if (fromTop)
-                fillPaint(linearGradient(0, y, 0, y + h, cHot, cDeep));
+                fillPaint(linearGradient(0, y, 0, y + h, fT->hot, fT->deep));
             else
-                fillPaint(linearGradient(0, y + h, 0, y, cDeep, cGold));
+                fillPaint(linearGradient(0, y + h, 0, y, fT->deep, fT->gold));
             fill();
         }
 
-        label(x + w * 0.5f, y + h + 13, 11, cText, ALIGN_CENTER | ALIGN_MIDDLE, name, 1);
-        label(x + w * 0.5f, y + h + 28, 10, cDim, ALIGN_CENTER | ALIGN_MIDDLE, value);
+        label(x + w * 0.5f, y + h + 13, 11, fT->text, ALIGN_CENTER | ALIGN_MIDDLE, name, 1);
+        label(x + w * 0.5f, y + h + 28, 10, fT->dim, ALIGN_CENTER | ALIGN_MIDDLE, value);
     }
 
     void drawMeters()
@@ -1101,20 +1200,20 @@ private:
         lineTo(kMeterX[0] + w + 4, ly(0.0f) + 0.5f);
         moveTo(kMeterX[3] - 4, ly(0.0f) + 0.5f);
         lineTo(kMeterX[3] + w + 4, ly(0.0f) + 0.5f);
-        strokeColor(Color(255, 220, 160, 0.6f));
+        strokeColor(fT->meterTick);
         stroke();
         for (float db = -48.0f; db <= 0.0f; db += 12.0f)
         {
             char b[8];
             std::snprintf(b, sizeof(b), "%.0f", db);
-            label(kMeterX[0] + w + 13, ly(db), 8, cFaint, ALIGN_CENTER | ALIGN_MIDDLE, b);
-            label(kMeterX[3] - 13, ly(db), 8, cFaint, ALIGN_CENTER | ALIGN_MIDDLE, b);
+            label(kMeterX[0] + w + 13, ly(db), 8, fT->faint, ALIGN_CENTER | ALIGN_MIDDLE, b);
+            label(kMeterX[3] - 13, ly(db), 8, fT->faint, ALIGN_CENTER | ALIGN_MIDDLE, b);
         }
         for (float db = -10.0f; db >= -30.0f; db -= 10.0f)
         {
             char b[8];
             std::snprintf(b, sizeof(b), "%.0f", db);
-            label((kMeterX[1] + w + kMeterX[2]) * 0.5f, y + 2 + (h - 4) * (-db / 40.0f), 8, cFaint,
+            label((kMeterX[1] + w + kMeterX[2]) * 0.5f, y + 2 + (h - 4) * (-db / 40.0f), 8, fT->faint,
                   ALIGN_CENTER | ALIGN_MIDDLE, b);
         }
     }
@@ -1126,16 +1225,9 @@ private:
         return 20.0f * std::log10(out / in);
     }
 
-    static Color seriesColor(const int s)
+    Color seriesColor(const int s) const
     {
-        switch (s)
-        {
-        case kSeriesIn:  return Color(170, 120, 100);
-        case kSeriesOut: return cGold;
-        case kSeriesGR:  return cHot;
-        case kSeriesClip: return Color(120, 200, 255);
-        default:         return Color(140, 225, 150);
-        }
+        return fT->series[s];
     }
 
     // one history series as a thin line; y(v) maps a value to the plot; kNoValue leaves a gap
@@ -1170,11 +1262,11 @@ private:
         const Rect& r = kHistPlot;
         beginPath();
         rect(r.x, r.y, r.w, r.h);
-        fillColor(Color(12, 5, 6));
+        fillColor(fT->plot);
         fill();
 
         // legend: click to show / hide
-        label(kHistory.x + 12, kHistory.y + 16, 10, cText, ALIGN_LEFT | ALIGN_MIDDLE, "HISTORY", 1);
+        label(kHistory.x + 12, kHistory.y + 16, 10, fT->text, ALIGN_LEFT | ALIGN_MIDDLE, "HISTORY", 1);
         for (int s = 0; s < kNumSeries; ++s)
         {
             const Rect lr = legendRect(s);
@@ -1184,11 +1276,11 @@ private:
             lineTo(lr.x + 12, lr.y + 8.5f);
             lineCap(ROUND);
             strokeWidth(fShow[s] ? 2.0f : 1.0f);
-            strokeColor(fShow[s] ? c : cFaint);
+            strokeColor(fShow[s] ? c : fT->faint);
             stroke();
-            label(lr.x + 18, lr.y + 8, 9.5f, fShow[s] ? cText : cFaint, ALIGN_LEFT | ALIGN_MIDDLE, kSeriesNames[s], 0.3f);
+            label(lr.x + 18, lr.y + 8, 9.5f, fShow[s] ? fT->text : fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, kSeriesNames[s], 0.3f);
         }
-        label(kHistory.x + 12, kHistory.y + kHistory.h - 8, 8, cFaint, ALIGN_LEFT | ALIGN_MIDDLE, "click: show / hide", 0.3f);
+        label(kHistory.x + 12, kHistory.y + kHistory.h - 8, 8, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "click: show / hide", 0.3f);
 
         // levels rise from the bottom (0 dBFS at the top), reductions hang from the top
         const auto levelY = [&](const float v) {
@@ -1210,7 +1302,7 @@ private:
             moveTo(r.x, r.y + r.h * (-db / kHistLevelRange) + 0.5f);
             lineTo(r.x + r.w, r.y + r.h * (-db / kHistLevelRange) + 0.5f);
         }
-        strokeColor(Color(70, 34, 32, 0.5f));
+        strokeColor(fT->histGrid);
         stroke();
 
         const float ceilY = r.y + r.h * std::fmin(-fValues[kParamCeiling] / kHistLevelRange, 1.0f);
@@ -1220,28 +1312,28 @@ private:
             moveTo(xx, ceilY + 0.5f);
             lineTo(xx + 4.0f, ceilY + 0.5f);
         }
-        strokeColor(Color(255, 200, 120, 0.35f));
+        strokeColor(fT->histCeil);
         stroke();
 
         for (float db = 0.0f; db >= -kHistLevelRange + 1.0f; db -= 12.0f)
         {
             char b[8];
             std::snprintf(b, sizeof(b), "%.0f", db);
-            label(r.x + r.w + 4, r.y + r.h * (-db / kHistLevelRange), 8, cFaint, ALIGN_LEFT | ALIGN_MIDDLE, b);
+            label(r.x + r.w + 4, r.y + r.h * (-db / kHistLevelRange), 8, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, b);
         }
-        label(r.x + r.w + 4, r.y + r.h - 4, 7, cFaint, ALIGN_LEFT | ALIGN_MIDDLE, "dBFS");
+        label(r.x + r.w + 4, r.y + r.h - 4, 7, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "dBFS");
         for (float db = -6.0f; db >= -kHistReductionRange + 1.0f; db -= 6.0f)
         {
             char b[8];
             std::snprintf(b, sizeof(b), "%.0f", db);
-            label(r.x - 4, r.y + r.h * (-db / kHistReductionRange), 8, Color(cHot, cFaint, 0.5f),
+            label(r.x - 4, r.y + r.h * (-db / kHistReductionRange), 8, Color(fT->hot, fT->faint, 0.5f),
                   ALIGN_RIGHT | ALIGN_MIDDLE, b);
         }
 
         // difference: centred scale (0 dB in the middle), inside the plot on the right
         if (fShow[kSeriesDiff])
         {
-            const Color dc = Color(seriesColor(kSeriesDiff), cFaint, 0.4f);
+            const Color dc = Color(seriesColor(kSeriesDiff), fT->faint, 0.4f);
             beginPath();
             for (float xx = r.x; xx < r.x + r.w; xx += 6.0f)
             {
@@ -1315,15 +1407,15 @@ private:
 
         beginPath();
         roundedRect(x, y, w, h, 6);
-        fillColor(Color(8, 3, 4, 0.95f));
+        fillColor(fT->tipBg);
         fill();
         strokeWidth(1.0f);
-        strokeColor(Color(255, 110, 40, 0.6f));
+        strokeColor(fT->tipEdge);
         stroke();
-        label(x + pad, y + 13, 11, cGold, ALIGN_LEFT | ALIGN_MIDDLE, title, 0.5f);
+        label(x + pad, y + 13, 11, fT->gold, ALIGN_LEFT | ALIGN_MIDDLE, title, 0.5f);
         fontSize(10);
         textLetterSpacing(0);
-        fillColor(cText);
+        fillColor(fT->text);
         textAlign(ALIGN_LEFT | ALIGN_TOP);
         textBox(x + pad, y + 24, w - 2 * pad, help, nullptr);
     }
@@ -1331,6 +1423,8 @@ private:
     // ------------------------------------------------------------------ state
 
     float fValues[kParamCount];
+    int fTheme = BrimstonePrefs::kThemeEmber;
+    const Theme* fT = &kThemes[BrimstonePrefs::kThemeEmber];
     FontId fFont = 0;
     int fDrag = -1, fHover = -1, fEdit = -1;
     int fLastClickTarget = -1;
