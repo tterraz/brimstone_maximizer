@@ -388,7 +388,7 @@ class BrimstonePlugin : public Plugin
 {
 public:
     BrimstonePlugin()
-        : Plugin(kParamCount, kBrimstonePresetCount, 0)
+        : Plugin(kParamCount, kBrimstonePresetCount, kStateCount)
     {
         for (uint32_t i = 0; i < kParamCount; ++i)
             fParams[i] = kBrimstoneRanges[i].def;
@@ -470,6 +470,32 @@ protected:
     void initProgramName(const uint32_t index, String& name) override
     {
         name = kBrimstonePresets[index].name;
+    }
+
+    // states of the interface (A/B comparison), saved with the project; nothing for the DSP
+    void initState(const uint32_t index, State& state) override
+    {
+        if (index >= static_cast<uint32_t>(kStateCount))
+            return;
+        state.key = kStateKeys[index];
+        state.defaultValue = "";
+        state.label = "A/B comparison";
+        state.hints = kStateIsOnlyForUI;
+    }
+
+    void setState(const char* const key, const char* const value) override
+    {
+        for (int i = 0; i < kStateCount; ++i)
+            if (std::strcmp(key, kStateKeys[i]) == 0)
+                fStates[i] = value;
+    }
+
+    String getState(const char* const key) const override
+    {
+        for (int i = 0; i < kStateCount; ++i)
+            if (std::strcmp(key, kStateKeys[i]) == 0)
+                return fStates[i];
+        return String();
     }
 
     void loadProgram(const uint32_t index) override
@@ -923,6 +949,7 @@ private:
     }
 
     float fParams[kParamCount];
+    String fStates[kStateCount];   // strings of the interface, only kept for the host
 
     Oversampler fOs;          // only holds the factor
     Oversampler fOsCh[2];

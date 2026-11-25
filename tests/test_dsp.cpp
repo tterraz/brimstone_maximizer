@@ -18,6 +18,7 @@
  * 11. Soft clip knee: at 1x with Mix 0, output == soft clip of (input x gain) from the knee.
  * 12. Loudness: K-weighting coefficients of BS.1770 at 48 kHz; a pure gain of +6 dB reads
  *     +6.0 LU; a 50 Hz tone counts less than with a flat measure (RLB high-pass).
+ * 13. States of the interface (saved with the project): declared, kept and given back.
  * 9. Denormals: FTZ / DAZ are switched on in run() only, the FPU state of the caller is
  *    restored (the gain in silence is measured by tests/bench_cpu.cpp).
  */
@@ -512,6 +513,21 @@ int main()
         process(s, Q, Q, oL, oR, nullptr, m);
         std::snprintf(buf, sizeof(buf), "mix 0, gain +6 dB, clip off: loudness change %+.2f LU", m[kParamMeterLoud]);
         check(std::fabs(m[kParamMeterLoud] - 6.02f) < 0.05f, buf);
+    }
+
+    // 13. states ------------------------------------------------------------------------------
+    std::printf("13. states of the interface\n");
+    {
+        PluginExporter p(nullptr, nullptr, nullptr, nullptr);
+        bool ok = p.getStateCount() == static_cast<uint32_t>(kStateCount);
+        for (int i = 0; ok && i < kStateCount; ++i)
+        {
+            const char* const value = "slot=1;other=30,0.68,0,-12,0,-0.1,2,0,100,0,0,0,1";
+            ok = p.getStateKey(i) == kStateKeys[i] && p.getStateDefaultValue(i).isEmpty();
+            p.setState(kStateKeys[i], value);
+            ok = ok && p.getStateValue(kStateKeys[i]) == value;
+        }
+        check(ok, "every state declared, set and read back");
     }
 
     std::printf("%s\n", gFailures ? "FAILED" : "all tests passed");

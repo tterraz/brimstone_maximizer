@@ -106,6 +106,13 @@ que la fenêtre : défile à la molette.
 Code : `plugin/BrimstoneUserPresets.hpp` (fichiers), `BrimstoneUI.cpp` (liste, saisie du nom).
 
 ![liste des préréglages et saisie d'un nom](capture_presets.png)
+**Comparaison A/B** (en-tête, à droite des préréglages) : deux jeux de réglages ; clic sur A
+ou B : bascule (le jeu quitté est gardé, celui rejoint est rechargé ; à la première visite, B
+part d'une copie de A) ; bouton A>B (ou B>A) : copie le jeu courant dans l'autre. Avec Level
+match, compare deux réglages à sonie égale. Enregistré avec le projet : le jeu actif est l'état
+des paramètres, l'autre est l'état DPF `ab` (`slot=<0|1>;other=<13 valeurs>`, nombres en point
+décimal) ; le préréglage d'origine du jeu inactif n'est pas gardé dans le projet (affiché
+« Set A » ou « Set B » à la réouverture). Bypass et Delta n'en font pas partie.
 **Bulle d'aide sur chaque élément** (boutons, sélecteurs, vu-mètres, courbe, préréglages, Bypass).
 Boutons : glisser verticalement (Maj : fin), molette, double-clic ou Ctrl+clic : défaut,
 **clic droit : saisie au clavier** (Entrée, Échap).
@@ -146,10 +153,11 @@ dans `C:\Program Files\Common Files\VST3\`, `brimstone_maximizer.clap` dans `...
 resynchronisé après rechargement d'un préréglage). Correctif à proposer à DPF.
 
 ## Vérifications
-- `tests/test_dsp.cpp` (40 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
+- `tests/test_dsp.cpp` (41 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
   chaîne linéaire en 1x et 4x, égal à ce que retire l'écrêteur avec Clipper, Bypass prioritaire ;
   soft knee : sortie exacte en 1x de 0,1 à 6 dB ; sonie : coefficients de la pondération K à
-  48 kHz égaux à ceux de la norme à 1e-15, gain pur de +6 dB lu +6,0 LU) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
+  48 kHz égaux à ceux de la norme à 1e-15, gain pur de +6 dB lu +6,0 LU ; états de l'interface
+  déclarés, gardés et rendus) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
 - Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par

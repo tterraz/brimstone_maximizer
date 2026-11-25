@@ -11,6 +11,8 @@
  * waveforms, maximizer and clipper reductions; click a legend entry to show / hide it).
  * Knobs: drag vertically (Shift = fine), mouse wheel, double-click or Ctrl+click = default,
  * right-click = type a value (Enter / Escape).  Every control has a tooltip.
+ * A / B: two sets of settings to compare (header: A | B, copy to the other); the inactive one is
+ * saved with the project (DPF state "ab").
  * Presets: drop-down list in the header (click to open, wheel over the closed box to step),
  * factory presets then the presets saved by the user (BrimstoneUserPresets.hpp: "Save current
  * settings...", name typed in the box; delete with the cross of a saved preset, clicked twice).
@@ -28,6 +30,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <locale>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -177,7 +181,9 @@ static const Rect kClip    = { 400, 418, 130, 22 };
 static const Rect kOvers   = { 734, 326, 138, 22 };
 static const Rect kMatch   = { 622, 358, 120, 24 };
 static const Rect kDelta   = { 750, 358, 122, 24 };
-static const Rect kPreset  = { 456, 16, 206, 26 };   // drop-down box; the list opens below it
+static const Rect kPreset  = { 384, 16, 196, 26 };   // drop-down box; the list opens below it
+static const Rect kAB      = { 588, 17, 50, 24 };    // A | B
+static const Rect kCopy    = { 642, 17, 34, 24 };    // copy the current set to the other
 static const float kMenuItemH = 22.0f;     // preset list: item
 static const float kMenuHeaderH = 20.0f;   // section title (FACTORY, USER)
 static const float kMenuDividerH = 9.0f;   // line before "Save current settings..."
@@ -190,8 +196,8 @@ struct MenuRow {
     int index;    // factory preset, saved preset (in fUserNames) or section (0 factory, 1 user)
     float y, h;   // y from the top of the list content
 };
-static const Rect kTheme   = { 674, 17, 76, 24 };
-static const Rect kBypass  = { 762, 14, 114, 30 };
+static const Rect kTheme   = { 684, 17, 76, 24 };
+static const Rect kBypass  = { 768, 14, 108, 30 };
 
 static const float kMeterX[4] = { 642.0f, 700.0f, 758.0f, 816.0f };   // IN, GR, CLIP, OUT
 static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
@@ -199,7 +205,8 @@ static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
 // hover zones with a tooltip (knobs are handled separately)
 enum {
     kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZoneDelta, kZonePreset,
-    kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kNumZones
+    kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kZoneAB, kZoneCopy,
+    kNumZones
 };
 
 struct Zone {
@@ -244,6 +251,11 @@ static const Zone kZones[kNumZones] = {
     { kTheme, "THEME",
       "EMBER: dark. ASH: light. Kept for all instances and projects (a setting of this computer, "
       "not of the project); other open windows change when reopened." },
+    { kAB, "A / B",
+      "Two sets of settings to compare: click A or B to switch (with Level match, at equal "
+      "loudness). Both are saved with the project." },
+    { kCopy, "COPY",
+      "Copies the current settings into the other set (A > B or B > A)." },
 };
 
 static const int kHistorySize = 286;   // ~7 s at 40 points / s
@@ -320,6 +332,13 @@ protected:
         fValues[index] = value;
         if (index < static_cast<uint32_t>(kParamFirstOutput))
             repaint();
+    }
+
+    // saved A / B set: "slot=<0|1>;other=<values of the inactive set>"
+    void stateChanged(const char* const key, const char* const value) override
+    {
+        if (std::strcmp(key, kStateKeys[kStateAB]) == 0)
+            readABState(value);
     }
 
     void programLoaded(const uint32_t index) override
@@ -455,6 +474,8 @@ protected:
             return false;
 
         if (kPreset.contains(x, y)) { openMenu(); return true; }
+        if (kAB.contains(x, y)) { switchSlot(static_cast<int>(segmentAt(kAB, x, 2))); return true; }
+        if (kCopy.contains(x, y)) { copySlot(); return true; }
         if (kBypass.contains(x, y)) { toggle(kParamBypass); return true; }
         if (kTheme.contains(x, y)) { setTheme(static_cast<int>(segmentAt(kTheme, x, BrimstonePrefs::kThemeCount))); return true; }
         if (kMatch.contains(x, y)) { toggle(kParamMatch); return true; }
@@ -743,6 +764,85 @@ private:
     }
 
     // loads a set of values: one edit gesture per parameter, remembered to show the "*"
+    // ---- A / B: the active set is the live parameters, the other one is kept here
+
+    void storeSlot(const int slot)
+    {
+        Slot& s = fSlots[slot];
+        for (int i = 0; i < kPresetParamCount; ++i)
+        {
+            s.values[i] = fValues[i];
+            s.presetValues[i] = fPresetValues[i];
+        }
+        s.preset = fPreset;
+        s.user = fPresetUser;
+        s.name = fPresetName;
+        s.set = true;
+    }
+
+    void switchSlot(const int slot)
+    {
+        if (slot == fSlot)
+            return;
+        storeSlot(fSlot);
+        fSlot = slot;
+        if (!fSlots[slot].set)
+            storeSlot(slot);   // first visit: starts as a copy of the other set
+        const Slot s = fSlots[slot];
+        loadValues(s.values);
+        for (int i = 0; i < kPresetParamCount; ++i)
+            fPresetValues[i] = s.presetValues[i];
+        fPreset = s.preset;
+        fPresetUser = s.user;
+        fPresetName = s.name;
+        writeABState();
+        repaint();
+    }
+
+    void copySlot()
+    {
+        storeSlot(1 - fSlot);
+        writeABState();
+        repaint();
+    }
+
+    void writeABState()
+    {
+        const Slot& other = fSlots[1 - fSlot];
+        std::string text = "slot=" + std::to_string(fSlot) + ";other=";
+        for (int i = 0; i < kPresetParamCount; ++i)
+            text += (i ? "," : "") + BrimstoneUserPresets::number(other.set ? other.values[i] : fValues[i]);
+        setState(kStateKeys[kStateAB], text.c_str());
+    }
+
+    void readABState(const char* const value)
+    {
+        const char* const slot = std::strstr(value, "slot=");
+        const char* const other = std::strstr(value, "other=");
+        if (slot == nullptr || other == nullptr || (slot[5] != '0' && slot[5] != '1'))
+            return;
+        std::istringstream in(other + 6);
+        in.imbue(std::locale::classic());
+        float values[kPresetParamCount];
+        for (int i = 0; i < kPresetParamCount; ++i)
+        {
+            float v = kBrimstoneRanges[i].def;
+            char comma = ',';
+            if (!(in >> v) || !std::isfinite(v) || (i + 1 < kPresetParamCount && !(in >> comma)) || comma != ',')
+                return;
+            values[i] = clampValue(i, v);
+        }
+        fSlot = slot[5] - '0';
+        Slot& s = fSlots[1 - fSlot];
+        for (int i = 0; i < kPresetParamCount; ++i)
+            s.values[i] = s.presetValues[i] = values[i];
+        s.preset = -1;
+        s.user = false;
+        s.name = fSlot == 0 ? "Set B" : "Set A";   // the preset of a saved set is not kept
+        s.set = true;
+        repaint();
+    }
+
     void loadValues(const float values[kPresetParamCount])
     {
         for (int i = 0; i < kPresetParamCount; ++i)
@@ -1211,7 +1311,6 @@ private:
         label(256, 31, 14, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "MAXIMIZER", 5);
 
         // preset drop-down box
-        label(kPreset.x - 10, kPreset.y + kPreset.h * 0.5f, 9, fT->faint, ALIGN_RIGHT | ALIGN_MIDDLE, "PRESET", 1);
         beginPath();
         roundedRect(kPreset.x, kPreset.y, kPreset.w, kPreset.h, 5);
         fillColor(fT->well);
@@ -1240,15 +1339,28 @@ private:
         fillColor(fMenuOpen ? fT->gold : fT->dim);
         fill();
 
+        // A / B and copy
+        const char* const ab[2] = { "A", "B" };
+        segmented(kAB, ab, 2, fSlot, 11);
+        button(kCopy, false, fSlot == 0 ? "A>B" : "B>A", 9);
+        if (fHover == hoverOf(kCopy))
+        {
+            beginPath();
+            roundedRect(kCopy.x, kCopy.y, kCopy.w, kCopy.h, 5);
+            strokeWidth(1.0f);
+            strokeColor(fT->hoverEdge);
+            stroke();
+        }
+
         // theme
         segmented(kTheme, kThemeNames, BrimstonePrefs::kThemeCount, fTheme, 9);
 
         // bypass
         const bool bypassed = fValues[kParamBypass] > 0.5f;
         button(kBypass, bypassed, nullptr);
-        led(kBypass.x + 18, kBypass.y + kBypass.h * 0.5f, !bypassed);
-        label(kBypass.x + kBypass.w * 0.5f + 10, kBypass.y + kBypass.h * 0.5f, 12, bypassed ? fT->bypassText : fT->text,
-              ALIGN_CENTER | ALIGN_MIDDLE, bypassed ? "BYPASSED" : "ACTIVE", 2);
+        led(kBypass.x + 16, kBypass.y + kBypass.h * 0.5f, !bypassed);
+        label(kBypass.x + kBypass.w * 0.5f + 9, kBypass.y + kBypass.h * 0.5f, 11.5f, bypassed ? fT->bypassText : fT->text,
+              ALIGN_CENTER | ALIGN_MIDDLE, bypassed ? "BYPASSED" : "ACTIVE", 1.8f);
     }
 
     void drawMaximizerSection()
@@ -1995,6 +2107,17 @@ private:
     bool fMenuOnCross = false;             // the mouse is on the cross of that row
     int fDeleteArmed = -1;                 // row whose cross was clicked once
     float fMenuScroll = 0.0f, fMenuContentH = 0.0f;
+    // A / B sets: fSlot is live, the other is stored
+    struct Slot {
+        float values[kPresetParamCount];
+        float presetValues[kPresetParamCount];
+        int preset = 0;
+        bool user = false;
+        std::string name;
+        bool set = false;
+    };
+    Slot fSlots[2];
+    int fSlot = 0;
     // name of a preset being saved
     bool fNaming = false, fNameError = false;
     std::string fNameText;

@@ -88,6 +88,11 @@ D. **Sonie selon ITU-R BS.1770** (pondération K) pour Level match et l'écart a
 (E, pistes mono : retirée par l'utilisateur, ne pas la reproposer.)
 F. **Comparaison A/B** dans l'interface : deux jeux de réglages, bascule et copie A→B ; avec Level
    match, permet de comparer deux réglages à niveau égal.
+   **Fait** (2026-11-25) : A | B et A>B dans l'en-tête (étiquette « PRESET » retirée, boîte des
+   préréglages réduite à 196 px) ; jeu inactif enregistré avec le projet par un état DPF
+   (`DISTRHO_PLUGIN_WANT_STATE` et `WANT_FULL_STATE`, exigé par DPF avec des programmes : le
+   plugin garde la chaîne, le DSP l'ignore). Test 13 (état déclaré, gardé, rendu). Clics non
+   essayés (Wine : affichage seul).
 G. **Durée de l'historique** au choix (3, 7, 30 s) et enregistrement du choix des courbes avec le
    projet (déjà en piste ci-dessus : à faire ensemble, état DPF).
 H. **Banc de CPU** dans `tests/` (temps par échantillon en 1x/2x/4x, avec et sans signal) : base
