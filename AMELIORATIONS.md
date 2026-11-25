@@ -112,7 +112,7 @@ H. **Banc de CPU** dans `tests/` (temps par échantillon en 1x/2x/4x, avec et sa
 I. **Charte graphique alternative « Ash » (claire) et bouton de bascule** : **faite** le
    2026-11-24 (demandée par l'utilisateur ; mémorisation (b) : préférence de l'utilisateur pour
    toutes les instances, pas avec le projet). Détail : `LISEZMOI.md` § « Interface » ; captures
-   `capture_interface.png` (Ember) et `capture_interface_ash.png` (Ash).
+   `doc/captures/capture_interface.png` (Ember) et `capture_interface_ash.png` (Ash).
 
 ## Demandé le 2026-11-25
 J. **Liste déroulante des préréglages** (à la place des flèches < >) et **préréglages de

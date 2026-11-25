@@ -5,8 +5,8 @@ swh-plugins de Steve Harris), réécrit en C++ avec DPF, interface NanoVG.
 Formats : VST3 et CLAP pour Windows 64 bits ; VST3, CLAP et LV2 pour Linux.
 **Licence : GPL 2 ou ultérieure** (`COPYING`), comme l'original ; DPF est sous ISC (compatible).
 
-![interface, thème Ember](capture_interface.png)
-![interface, thème Ash](capture_interface_ash.png)
+![interface, thème Ember](doc/captures/capture_interface.png)
+![interface, thème Ash](doc/captures/capture_interface_ash.png)
 
 **Manuel d'utilisation** (réglages, préréglages, description détaillée de l'algorithme avec
 figures) : `doc/manuel.pdf` ; source `doc/manuel.tex` (pdflatex ×3 dans `doc/`), figures
@@ -111,7 +111,7 @@ que la fenêtre : défile à la molette.
   préréglages (par exemple `.vstpreset`) restent possibles et indépendants.
 Code : `plugin/BrimstoneUserPresets.hpp` (fichiers), `BrimstoneUI.cpp` (liste, saisie du nom).
 
-![liste des préréglages et saisie d'un nom](capture_presets.png)
+![liste des préréglages et saisie d'un nom](doc/captures/capture_presets.png)
 **Comparaison A/B** (en-tête, à droite des préréglages) : deux jeux de réglages ; clic sur A
 ou B : bascule (le jeu quitté est gardé, celui rejoint est rechargé ; à la première visite, B
 part d'une copie de A) ; bouton A>B (ou B>A) : copie le jeu courant dans l'autre. Avec Level
@@ -217,7 +217,8 @@ Améliorations : voir `AMELIORATIONS.md`.
   `-DBRIMSTONE_UI_DEMO=<zone>` (`-1` : aucune) et `-DBRIMSTONE_UI_DEMO_PRESET=<n>` forcent une bulle
   d'aide, un préréglage et un historique synthétique. Vérifier que la fenêtre existe avant
   `import`, sinon c'est l'écran entier qui est pris. La fenêtre s'ouvre sur l'affichage de
-  l'utilisateur (pas d'Xvfb) ; une variante par capture (`BUILD_DIR_SUFFIX=-demo-<n>`).
+  l'utilisateur (pas d'Xvfb) ; une variante par capture (`BUILD_DIR_SUFFIX=-demo-<n>`) ;
+  les captures gardées sont dans `doc/captures/` (LISEZMOI et manuel).
 - Sous Wine, `APPDATA` est fixé par Wine (`drive_c/users/<nom>/AppData/Roaming`) : une valeur
   donnée depuis Linux est ignorée ; pour essayer un autre dossier, `_wputenv` dans le programme.
 - Captures avec préréglages de l'utilisateur, liste ouverte ou saisie d'un nom :
