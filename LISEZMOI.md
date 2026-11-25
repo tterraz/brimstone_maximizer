@@ -218,7 +218,20 @@ Améliorations : voir `AMELIORATIONS.md`.
   l'utilisateur (pas d'Xvfb) ; une variante par capture (`BUILD_DIR_SUFFIX=-demo-<n>`).
 - Sous Wine, `APPDATA` est fixé par Wine (`drive_c/users/<nom>/AppData/Roaming`) : une valeur
   donnée depuis Linux est ignorée ; pour essayer un autre dossier, `_wputenv` dans le programme.
-- 2e série d'`AMELIORATIONS.md` terminée le 2026-11-25 (A-D, F-H, J), un commit par point.
+- Captures avec préréglages de l'utilisateur, liste ouverte ou saisie d'un nom :
+  `-DBRIMSTONE_UI_DEMO_MENU=<ligne>` (`_ARM=1`), `-DBRIMSTONE_UI_DEMO_NAME='"texte"'`,
+  `-DBRIMSTONE_UI_DEMO_HIST=<0|1|2>` (3, 7, 30 s) ; lancer la version autonome avec
+  `WINEPREFIX=<préfixe dédié>` rempli par `tests/test_user_presets.cpp` compilé avec MinGW (jamais
+  le `~/.wine` de l'utilisateur).
+- Manuel : `python3 doc/figures.py` puis `pdflatex manuel.tex` ×3 dans `doc/` (retirer les
+  `.aux/.log/.toc/.out`) ; à refaire avant `build.sh` si le manuel change (l'installateur le
+  reprend tel quel). Les chiffres du manuel (dépassement, réponse des filtres, latences, CPU)
+  ont été vérifiés sur le greffon : les revérifier si le DSP change.
+- Banc CPU : comparer deux versions en les lançant en même temps sur deux cœurs
+  (`taskset -c 2` / `-c 5`), deux tours en croisant les cœurs ; la machine de l'utilisateur est
+  souvent chargée (valeurs absolues au simple au triple), seuls les rapports simultanés valent.
+- 2e série d'`AMELIORATIONS.md` terminée le 2026-11-25 (A-D, F-H, J), puis K (filtre 2x à 107
+  coefficients), un commit par point.
 - Reste : essais dans un vrai hôte (clics et saisie au clavier : liste des préréglages,
   enregistrement d'un nom, A/B, durée de l'historique, pastille de thème ; rechargement d'un
   projet avec ses états A/B et historique) ; validateur VST3 Windows à relancer ; correctif à
