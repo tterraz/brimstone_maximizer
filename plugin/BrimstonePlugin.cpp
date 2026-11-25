@@ -28,6 +28,11 @@
  * When round(decay / 2) changes, a second detector (envelope + gain history) starts with the
  * new decay and lookahead and the gains are crossfaded over 5 ms: each detector stays
  * consistent (lookahead matched to its decay), so there is neither click nor overshoot.
+ *
+ * Denormal numbers: in silence the envelope decays to the smallest denormal and stays there
+ * (1.4e-45 x (1 - 1/decay) rounds to itself), and denormal arithmetic is slow on x86 when the
+ * host leaves FTZ / DAZ off (silence 1.4 to 2.1 times slower, tests/bench_cpu.cpp).  run()
+ * switches FTZ / DAZ on and restores the state of the host when it returns (ScopedNoDenormals).
  */
 
 #include "DistrhoPlugin.hpp"
@@ -38,7 +43,25 @@
 #include <cstring>
 #include <vector>
 
+#if defined(__SSE__) || defined(_M_X64)
+# include <xmmintrin.h>
+#endif
+
 START_NAMESPACE_DISTRHO
+
+// Flush-to-zero and denormals-are-zero (SSE) for the lifetime of the object, then the previous
+// state (it belongs to the host thread).  Nothing on other processors.
+class ScopedNoDenormals
+{
+public:
+#if defined(__SSE__) || defined(_M_X64)
+    ScopedNoDenormals() : fSaved(_mm_getcsr()) { _mm_setcsr(fSaved | 0x8040u); }   // FTZ bit 15, DAZ bit 6
+    ~ScopedNoDenormals() { _mm_setcsr(fSaved); }
+
+private:
+    const unsigned fSaved;
+#endif
+};
 
 static inline float dbToGain(const float db) { return std::pow(10.0f, db * 0.05f); }
 
@@ -421,6 +444,7 @@ protected:
 
     void run(const float** inputs, float** outputs, const uint32_t frames) override
     {
+        const ScopedNoDenormals noDenormals;
         if (configKey() != fConfigKey)
             configure();
 

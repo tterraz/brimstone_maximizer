@@ -13,6 +13,8 @@
  * 6. Presets: every preset gives a finite output under the ceiling.
  * 7. Clipper preset: output == clip(input x gain) at 1x.
  * 8. Meters: maximizer and clipper reductions, history peaks.
+ * 9. Denormals: FTZ / DAZ are switched on in run() only, the FPU state of the caller is
+ *    restored (the gain in silence is measured by tests/bench_cpu.cpp).
  */
 #include "src/DistrhoPluginInternal.hpp"
 #include "src/DistrhoPlugin.cpp"
@@ -324,6 +326,35 @@ int main()
         // 0.5 = -6 dBFS, 6 dB above the knee: reduction 6 dB below the makeup gain
         check(fabsf(m[kParamMeterGR] + 6.02f) < 0.1f && fabsf(m[kParamHistGR] + 6.02f) < 0.1f
               && m[kParamMeterClip] == 0.0f, buf);
+    }
+
+    // 9. denormals ------------------------------------------------------------------------------
+    std::printf("9. denormals (FTZ / DAZ during run only)\n");
+    {
+#if defined(__SSE__) || defined(_M_X64)
+        const unsigned saved = _mm_getcsr();
+        bool restored = true;
+        for (const unsigned csr : { saved & ~0x8040u, saved | 0x8040u })
+        {
+            _mm_setcsr(csr);
+            std::vector<float> S(30000, 0.0f);
+            for (size_t n = 0; n < 4410; ++n)
+                S[n] = 0.5f * sinf(0.0314f * n);
+            for (const int os : { 0, 2 })
+            {
+                Settings def;
+                for (int i = 0; i < kPresetParamCount; ++i)
+                    def.values[i] = kBrimstonePresets[0].values[i];
+                def.values[kParamOversampling] = (float)os;
+                process(def, S, S, oL, oR);
+                restored = restored && _mm_getcsr() == csr;
+            }
+        }
+        _mm_setcsr(saved);
+        check(restored, "FPU state of the caller restored (FTZ / DAZ off and on, 1x and 4x)");
+#else
+        check(true, "not an SSE processor: nothing to test");
+#endif
     }
 
     std::printf("%s\n", gFailures ? "FAILED" : "all tests passed");

@@ -52,6 +52,13 @@ A. **Dénormaux** (robustesse, CPU) : sur un silence, l'enveloppe (`follow`) dé
    chaque opération peut coûter 10 à 100 fois plus (pic de CPU dans les fins de morceau). Remède :
    FTZ/DAZ le temps de `run` (`_mm_setcsr`, rétabli en sortie) ou plancher à 1e-20. À mesurer
    d'abord (test : silence après un signal, temps de `run`). Sortie inchangée au-dessus de -400 dB.
+   **Fait** (2026-11-25) : FTZ/DAZ le temps de `run` (`ScopedNoDenormals`, état de l'hôte
+   rétabli ; rien hors SSE). Mesure simultanée (banc H, ancienne et nouvelle version sur deux
+   cœurs, FTZ coupé chez l'appelant) : silence 157 → 53 ns par trame en 1x, 349 → 144 en 2x,
+   921 → 356 en 4x ; le silence ne dépend plus de l'état du FPU de l'hôte (rapport coupé/activé
+   0,97-1,07 contre 1,5-2,6) ; musique inchangée (bruit). Sortie identique bit à bit (7 préréglages
+   × 1x/2x/4x, FTZ coupé), sauf des sorties de l'ordre de 2e-28 (-560 dB) sur un canal de 1e-30.
+   Test 9 de `test_dsp` : état du FPU de l'appelant rétabli.
 B. **Écoute de la différence** (« Delta ») : bouton qui fait entendre sortie − entrée (retardée de
    la latence), ce que le maximiseur et l'écrêteur retirent ; courant sur ce type de plugin, peu
    de code (l'entrée retardée existe déjà pour Bypass).

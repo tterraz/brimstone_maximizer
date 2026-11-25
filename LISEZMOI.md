@@ -18,6 +18,10 @@ Avec le préréglage « Original (swh) » (unité échantillons, 1x, Clip Off, C
 Stereo L/R, Mix 100 %, Gain 0), la sortie est celle de l'original retardée de 15 échantillons
 (test 1 : écart relatif ≤ 1,2e-7).
 
+Dénormaux : sur un silence, l'enveloppe reste sur le plus petit nombre dénormal, lent sur x86 ;
+`run` active FTZ/DAZ et rétablit l'état du FPU de l'hôte en sortie (silence 2 à 3 fois moins
+coûteux quand l'hôte les laisse coupés ; sortie inchangée au-dessus de -400 dB).
+
 Chaîne (fréquence interne = fréquence de l'hôte × suréchantillonnage) :
 entrée → suréchantillonnage → Drive → cœur → × Ceiling, mélange avec le signal sec → Gain →
 écrêtage au plafond → sous-échantillonnage → écrêtage de sûreté → Level match → Bypass.
@@ -140,7 +144,7 @@ dans `C:\Program Files\Common Files\VST3\`, `brimstone_maximizer.clap` dans `...
 resynchronisé après rechargement d'un préréglage). Correctif à proposer à DPF.
 
 ## Vérifications
-- `tests/test_dsp.cpp` (26 cas) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
+- `tests/test_dsp.cpp` (28 cas, dont l'état du FPU rétabli après `run`) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
 - Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par
