@@ -38,7 +38,7 @@ Proposées le 2026-11-24, toutes jugées pertinentes par l'utilisateur, faites l
   traits fins, masquables.
 
 ## Pistes nouvelles (non demandées)
-- Enregistrer avec le projet le choix des courbes de l'historique (état DPF).
+- Enregistrer avec le projet le choix des courbes de l'historique (état DPF) : fait avec G.
 - Proposer le correctif `patches/dpf-vst3-flush-parameters.patch` à DPF.
 - Version macOS (nécessite une machine macOS ou osxcross).
 
@@ -95,6 +95,9 @@ F. **Comparaison A/B** dans l'interface : deux jeux de réglages, bascule et cop
    essayés (Wine : affichage seul).
 G. **Durée de l'historique** au choix (3, 7, 30 s) et enregistrement du choix des courbes avec le
    projet (déjà en piste ci-dessus : à faire ensemble, état DPF).
+   **Fait** (2026-11-25) : sélecteur 3 s | 7 s | 30 s sous la légende (à la place de « click:
+   show / hide », passé dans la bulle d'aide de l'historique) ; tampon de 30 s (1 201 points),
+   les derniers 3, 7 ou 30 s affichés ; durée et courbes : état DPF `history`. Clics non essayés.
 H. **Banc de CPU** dans `tests/` (temps par échantillon en 1x/2x/4x, avec et sans signal) : base
    pour A et pour toute optimisation future (règle : pas de gain annoncé sans mesure).
    **Fait** (2026-11-25) : `tests/bench_cpu.cpp` (mode d'emploi en tête du fichier ; hors

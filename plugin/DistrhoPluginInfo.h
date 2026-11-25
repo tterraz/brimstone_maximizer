@@ -21,7 +21,7 @@
 #define DISTRHO_PLUGIN_NUM_OUTPUTS   2
 #define DISTRHO_PLUGIN_WANT_LATENCY  1
 #define DISTRHO_PLUGIN_WANT_PROGRAMS 1
-#define DISTRHO_PLUGIN_WANT_STATE    1   // settings of the interface saved with the project (A/B)
+#define DISTRHO_PLUGIN_WANT_STATE    1   // settings of the interface saved with the project (A/B, history)
 #define DISTRHO_PLUGIN_WANT_FULL_STATE 1 // the plugin keeps the state strings (getState)
 #define DISTRHO_UI_USE_NANOVG        1
 #define DISTRHO_UI_USER_RESIZABLE    1

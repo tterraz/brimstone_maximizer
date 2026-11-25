@@ -12,7 +12,8 @@
  * Knobs: drag vertically (Shift = fine), mouse wheel, double-click or Ctrl+click = default,
  * right-click = type a value (Enter / Escape).  Every control has a tooltip.
  * A / B: two sets of settings to compare (header: A | B, copy to the other); the inactive one is
- * saved with the project (DPF state "ab").
+ * saved with the project (DPF state "ab").  History: 3, 7 or 30 s, and the curves shown, saved
+ * with the project (DPF state "history").
  * Presets: drop-down list in the header (click to open, wheel over the closed box to step),
  * factory presets then the presets saved by the user (BrimstoneUserPresets.hpp: "Save current
  * settings...", name typed in the box; delete with the cross of a saved preset, clicked twice).
@@ -198,6 +199,7 @@ struct MenuRow {
 };
 static const Rect kTheme   = { 684, 17, 76, 24 };
 static const Rect kBypass  = { 768, 14, 108, 30 };
+static const Rect kHistLengthBox = { 30, 571, 92, 14 };   // history length, under the legend
 
 static const float kMeterX[4] = { 642.0f, 700.0f, 758.0f, 816.0f };   // IN, GR, CLIP, OUT
 static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
@@ -206,7 +208,7 @@ static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
 enum {
     kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZoneDelta, kZonePreset,
     kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kZoneAB, kZoneCopy,
-    kNumZones
+    kZoneHistLength, kNumZones
 };
 
 struct Zone {
@@ -244,10 +246,11 @@ static const Zone kZones[kNumZones] = {
     { { kMeterX[2] - 6, kMeterY, kMeterW + 12, kMeterH + 40 }, "CLIP",
       "Gain reduction of the clipper, dB." },
     { { kMeterX[3] - 6, kMeterY, kMeterW + 12, kMeterH + 40 }, "OUT", "Output peak level, dBFS." },
-    { kHistPlot, "HISTORY (7 s)",
+    { kHistPlot, "HISTORY",
       "Input and output peak levels rise from the bottom (dBFS, right scale; dashed: ceiling). "
       "Reductions of the maximizer and of the clipper hang from the top (dB, left scale). "
-      "out - in: total gain, output minus input peak (dB, centred scale inside on the right)." },
+      "out - in: total gain, output minus input peak (dB, centred scale inside on the right). "
+      "Click a legend entry to show or hide its curve (saved with the project)." },
     { kTheme, "THEME",
       "EMBER: dark. ASH: light. Kept for all instances and projects (a setting of this computer, "
       "not of the project); other open windows change when reopened." },
@@ -256,9 +259,15 @@ static const Zone kZones[kNumZones] = {
       "loudness). Both are saved with the project." },
     { kCopy, "COPY",
       "Copies the current settings into the other set (A > B or B > A)." },
+    { kHistLengthBox, "HISTORY LENGTH",
+      "Time shown by the history: 3, 7 or 30 seconds (saved with the project)." },
 };
 
-static const int kHistorySize = 286;   // ~7 s at 40 points / s
+// history: one point every 25 ms, the longest length kept; the selector shows the last 3, 7 or 30 s
+static const int kHistorySize = 1201;
+static const int kHistLengthCount = 3;
+static const int kHistSeconds[kHistLengthCount] = { 3, 7, 30 };
+static const char* const kHistLengthNames[kHistLengthCount] = { "3 s", "7 s", "30 s" };
 
 // history series, each can be hidden by clicking its legend entry
 static const char* const kSeriesNames[kNumSeries] = { "input", "output", "maximizer GR", "clipper GR",
@@ -305,6 +314,9 @@ public:
         // screenshots only (-DBRIMSTONE_UI_DEMO=<hover id> [-DBRIMSTONE_UI_DEMO_PRESET=<index>]):
         // a tooltip, and a synthetic history (drum-like hits) since there is no audio
         fHover = BRIMSTONE_UI_DEMO;
+# ifdef BRIMSTONE_UI_DEMO_HIST
+        fHistLength = BRIMSTONE_UI_DEMO_HIST;   // history length (index: 3, 7, 30 s)
+# endif
         for (int i = 0; i < kHistorySize; ++i)
         {
             const float t = static_cast<float>(i % 20) / 20.0f;
@@ -339,6 +351,8 @@ protected:
     {
         if (std::strcmp(key, kStateKeys[kStateAB]) == 0)
             readABState(value);
+        else if (std::strcmp(key, kStateKeys[kStateHistory]) == 0)
+            readHistoryState(value);
     }
 
     void programLoaded(const uint32_t index) override
@@ -476,6 +490,13 @@ protected:
         if (kPreset.contains(x, y)) { openMenu(); return true; }
         if (kAB.contains(x, y)) { switchSlot(static_cast<int>(segmentAt(kAB, x, 2))); return true; }
         if (kCopy.contains(x, y)) { copySlot(); return true; }
+        if (kHistLengthBox.contains(x, y))
+        {
+            fHistLength = static_cast<int>(segmentAt(kHistLengthBox, x, kHistLengthCount));
+            writeHistoryState();
+            repaint();
+            return true;
+        }
         if (kBypass.contains(x, y)) { toggle(kParamBypass); return true; }
         if (kTheme.contains(x, y)) { setTheme(static_cast<int>(segmentAt(kTheme, x, BrimstonePrefs::kThemeCount))); return true; }
         if (kMatch.contains(x, y)) { toggle(kParamMatch); return true; }
@@ -488,6 +509,7 @@ protected:
             if (legendRect(s).contains(x, y))
             {
                 fShow[s] = !fShow[s];
+                writeHistoryState();
                 repaint();
                 return true;
             }
@@ -840,6 +862,32 @@ private:
         s.user = false;
         s.name = fSlot == 0 ? "Set B" : "Set A";   // the preset of a saved set is not kept
         s.set = true;
+        repaint();
+    }
+
+    // ---- history display: "seconds=<3|7|30>;show=<one 0/1 per curve>"
+
+    int historyPoints() const { return kHistSeconds[fHistLength] * 40 + 1; }
+
+    void writeHistoryState()
+    {
+        std::string text = "seconds=" + std::to_string(kHistSeconds[fHistLength]) + ";show=";
+        for (int s = 0; s < kNumSeries; ++s)
+            text += fShow[s] ? '1' : '0';
+        setState(kStateKeys[kStateHistory], text.c_str());
+    }
+
+    void readHistoryState(const char* const value)
+    {
+        const char* const seconds = std::strstr(value, "seconds=");
+        if (seconds != nullptr)
+            for (int i = 0; i < kHistLengthCount; ++i)
+                if (std::atoi(seconds + 8) == kHistSeconds[i])
+                    fHistLength = i;
+        const char* const show = std::strstr(value, "show=");
+        if (show != nullptr && std::strlen(show + 5) >= static_cast<size_t>(kNumSeries))
+            for (int s = 0; s < kNumSeries; ++s)
+                fShow[s] = show[5 + s] != '0';
         repaint();
     }
 
@@ -1743,9 +1791,10 @@ private:
     {
         beginPath();
         bool pen = false;
-        for (int j = 0; j < kHistorySize; ++j)
+        const int n = historyPoints();
+        for (int j = 0; j < n; ++j)
         {
-            const float v = fHist[s][(fHistPos + 1 + j) % kHistorySize];
+            const float v = fHist[s][(fHistPos + 1 + (kHistorySize - n) + j) % kHistorySize];
             if (v <= kNoValue)
             {
                 pen = false;
@@ -1787,7 +1836,7 @@ private:
             stroke();
             label(lr.x + 18, lr.y + 8, 9.5f, fShow[s] ? fT->text : fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, kSeriesNames[s], 0.3f);
         }
-        label(kHistory.x + 12, kHistory.y + kHistory.h - 8, 8, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "click: show / hide", 0.3f);
+        segmented(kHistLengthBox, kHistLengthNames, kHistLengthCount, fHistLength, 8);
 
         // levels rise from the bottom (0 dBFS at the top), reductions hang from the top
         const auto levelY = [&](const float v) {
@@ -1858,7 +1907,7 @@ private:
             }
         }
 
-        const float dx = r.w / (kHistorySize - 1);
+        const float dx = r.w / (historyPoints() - 1);
         save();
         scissor(r.x, r.y - 1, r.w, r.h + 2);
         if (fShow[kSeriesIn])
@@ -2126,6 +2175,7 @@ private:
 
     float fHist[kNumSeries][kHistorySize];
     bool fShow[kNumSeries];
+    int fHistLength = 1;   // index in kHistSeconds (7 s)
     int fHistPos = 0;
     std::chrono::steady_clock::time_point fLastPush;
 #ifdef BRIMSTONE_UI_DEMO_PRESET

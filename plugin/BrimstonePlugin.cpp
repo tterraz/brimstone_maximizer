@@ -479,7 +479,7 @@ protected:
             return;
         state.key = kStateKeys[index];
         state.defaultValue = "";
-        state.label = "A/B comparison";
+        state.label = index == kStateAB ? "A/B comparison" : "History display";
         state.hints = kStateIsOnlyForUI;
     }
 

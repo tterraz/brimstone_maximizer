@@ -70,7 +70,7 @@ droite dans l'ordre du signal (flèches entre elles) :
 3. **MONITOR** : vu-mètres IN, GR (maximiseur, 0 quand Mix = 0 %), CLIP (écrêteur), OUT ;
    Oversampling, Level match, Delta, écart de sonie, latence.
 
-**Historique** (~7 s, un point toutes les 25 ms, crêtes des 30 dernières ms, donc aucune crête
+**Historique** (3, 7 ou 30 s au choix sous la légende, 7 s par défaut ; un point toutes les 25 ms, crêtes des 30 dernières ms, donc aucune crête
 perdue entre deux points), cinq courbes fines sur une même bande, chacune masquable d'un clic sur
 sa légende :
 - *input*, *output* : niveaux de crête, montent depuis le bas (dBFS, échelle à droite ; pointillés : plafond) ;
@@ -78,7 +78,8 @@ sa légende :
 - *out - in* : gain total réellement appliqué, sortie moins entrée (dB, échelle centrée sur 0,
   graduée dans le graphique à droite ; interrompue quand l'entrée est muette).
 
-Le choix des courbes affichées n'est pas enregistré avec le projet (toutes visibles à l'ouverture). La courbe de transfert
+La durée et le choix des courbes affichées sont enregistrés avec le projet (état DPF `history`,
+`seconds=<3|7|30>;show=<un 0/1 par courbe>`) ; nouvelle instance : 7 s, toutes visibles. La courbe de transfert
 donne le niveau de sortie pour un niveau d'entrée stable, tous réglages compris (Mix aussi).
 **Préréglages** (2026-11-25, remplace les flèches < >) : liste déroulante de l'en-tête, en deux
 sections séparées par un trait, FACTORY (usine) puis USER (les vôtres, par ordre alphabétique),
@@ -164,7 +165,10 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
   trame stéréo et charge d'une instance, 1x/2x/4x, musique, silence, Bypass, FTZ/DAZ coupés ou
   non. Mesures : `AMELIORATIONS.md` (H, A).
 - Validateur VST3 de Steinberg (`tools/validate_vst3.sh`) : 47/47 sur le VST3 Linux, 47/47 sur
-  le VST3 Windows (validateur compilé avec MinGW, lancé sous Wine).
+  le VST3 Windows (validateur compilé avec MinGW, lancé sous Wine). Relancé le 2026-11-25 après
+  l'ajout des états (A/B, historique), Delta et Soft knee : 47/47 sur le VST3 Linux ; Windows non
+  relancé. Les messages « assertion failure » de DPF sur la sortie d'erreur (paramètres de sortie
+  absents, indices invalides envoyés exprès par le validateur) sont les mêmes avant et après.
 - `tests/test_prefs.cpp` (7 cas, lancé par `build.sh` dans un dossier personnel vide) : fichier
   absent, écriture et relecture des deux thèmes, valeur invalide, lignes inconnues et fins CRLF.
   Vérifié aussi : `XDG_CONFIG_HOME`, `HOME` absent (écriture refusée sans erreur), Windows sous

@@ -100,7 +100,7 @@ static const BrimstonePreset kBrimstonePresets[] = {
 static const int kBrimstonePresetCount = sizeof(kBrimstonePresets) / sizeof(kBrimstonePresets[0]);
 
 // States saved with the project, written by the UI only (the DSP ignores them)
-enum { kStateAB = 0, kStateCount };
-static const char* const kStateKeys[kStateCount] = { "ab" };
+enum { kStateAB = 0, kStateHistory, kStateCount };
+static const char* const kStateKeys[kStateCount] = { "ab", "history" };
 
 #endif
