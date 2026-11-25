@@ -70,6 +70,7 @@ Section "Manual (PDF)" SecManual
 SectionEnd
 
 Section "Uninstall"
+    SetShellVarContext all   ; the shortcut is in the Start menu of all users (NSIS default: current user)
     Delete "$SMPROGRAMS\${NAME}\${NAME} - manuel.lnk"
     RMDir "$SMPROGRAMS\${NAME}"
     Delete "$PROGRAMFILES64\Brimstone\${MANUAL}"
