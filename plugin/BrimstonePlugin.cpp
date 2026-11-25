@@ -85,15 +85,20 @@ static inline unsigned nextPow2(unsigned n)
 }
 
 // ------------------------------------------------------------------------------------------------
-// 2x half-band FIR stage (Kaiser windowed sinc, 47 taps, ~80 dB stop band), polyphase up/down.
-// Group delay: 23 samples at the high rate for up, 23 for down.
+// 2x half-band FIR stage (Kaiser windowed sinc, beta 8, Taps = 4k + 3), polyphase up/down.
+// Group delay: (Taps - 1) / 2 samples at the high rate for up, as many for down.
+// The stage at the host Nyquist frequency has 107 taps: flat to 0.01 dB up to 20 kHz at a host
+// rate of 44.1 kHz, >= 69 dB of rejection above 24.1 kHz (47 taps, before: -2.1 dB at 20 kHz,
+// 19 dB at 24.1 kHz).  The second stage of 4x cuts at 44.1 kHz: 47 taps are enough.
 
+template <int Taps>
 class HalfbandStage
 {
 public:
-    static const int kTaps = 47;
-    static const int kCenter = 23;
-    static const int kPhase0 = 24;   // even taps
+    static_assert(Taps % 4 == 3, "half-band: odd centre, only one non-zero odd tap");
+    static const int kTaps = Taps;
+    static const int kCenter = (Taps - 1) / 2;
+    static const int kPhase0 = kCenter + 1;   // even taps
     static const int kDelayHigh = 2 * kCenter;   // up + down, samples at the high rate
 
     static const float* coefficients()
@@ -145,7 +150,7 @@ public:
     float down(const float* const in)
     {
         const float* const h = coefficients();
-        // output at the time of in[0]: delay 23 high-rate samples, an integer at the low rate
+        // output at the time of in[0]: delay kCenter high-rate samples
         push(in[0]);
         const float* const us = fDown + fDownPos;   // us[j] = u[m - j]
         float y = 0.0f;
@@ -186,17 +191,17 @@ public:
 
     void reset()
     {
-        fStage[0].reset();
-        fStage[1].reset();
+        fStage0.reset();
+        fStage1.reset();
     }
 
     // latency of up + down, in internal (oversampled) samples
     static unsigned latencyInternal(const unsigned factor)
     {
         if (factor == 2)
-            return HalfbandStage::kDelayHigh;
+            return Stage0::kDelayHigh;
         if (factor == 4)
-            return 2 * HalfbandStage::kDelayHigh + HalfbandStage::kDelayHigh;
+            return 2 * Stage0::kDelayHigh + Stage1::kDelayHigh;   // stage 0 runs at half the rate
         return 0;
     }
 
@@ -208,14 +213,14 @@ public:
         }
         else if (fFactor == 2)
         {
-            fStage[0].up(x, out);
+            fStage0.up(x, out);
         }
         else
         {
             float t[2];
-            fStage[0].up(x, t);
-            fStage[1].up(t[0], out);
-            fStage[1].up(t[1], out + 2);
+            fStage0.up(x, t);
+            fStage1.up(t[0], out);
+            fStage1.up(t[1], out + 2);
         }
     }
 
@@ -224,14 +229,17 @@ public:
         if (fFactor == 1)
             return in[0];
         if (fFactor == 2)
-            return fStage[0].down(in);
-        const float t[2] = { fStage[1].down(in), fStage[1].down(in + 2) };
-        return fStage[0].down(t);
+            return fStage0.down(in);
+        const float t[2] = { fStage1.down(in), fStage1.down(in + 2) };
+        return fStage0.down(t);
     }
 
 private:
+    typedef HalfbandStage<107> Stage0;   // host rate <-> 2x: cuts at the host Nyquist frequency
+    typedef HalfbandStage<47> Stage1;    // 2x <-> 4x: cuts at the host rate
     unsigned fFactor = 1;
-    HalfbandStage fStage[2];
+    Stage0 fStage0;
+    Stage1 fStage1;
 };
 
 // ------------------------------------------------------------------------------------------------

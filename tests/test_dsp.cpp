@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <string>
 #include <vector>
 
 USE_NAMESPACE_DISTRHO
@@ -220,6 +221,36 @@ int main()
             std::snprintf(buf, sizeof(buf), "%dx, unit %s: latency %u, max error %.1e",
                           1 << os, unit ? "ms" : "samples", lat, err);
             check(err < 1e-3f, buf);
+        }
+
+        // response of the filters near the host Nyquist frequency (44.1 kHz): flat to 20 kHz
+        for (int os = 1; os <= 2; ++os)
+        {
+            char buf[160];
+            float worst = 0.0f;
+            std::string line;
+            for (const float f : { 18000.0f, 19000.0f, 20000.0f })
+            {
+                std::vector<float> T(N);
+                for (size_t n = 0; n < N; ++n)
+                    T[n] = 0.5f * sinf(2.0f * (float)M_PI * f * n / 44100.0f);
+                Settings s = originalSettings(30.0f, -20.0f, 0);
+                s.values[kParamOversampling] = (float)os;
+                s.values[kParamMix] = 0.0f;
+                process(s, T, T, oL, oR);
+                double pin = 0.0, pout = 0.0;
+                for (size_t n = N / 2; n < N; ++n)
+                {
+                    pin += (double)T[n] * T[n];
+                    pout += (double)oL[n] * oL[n];
+                }
+                const float g = (float)(10.0 * std::log10(pout / pin));
+                worst = std::max(worst, fabsf(g));
+                std::snprintf(buf, sizeof(buf), " %.0f kHz %+.3f dB", f / 1000.0f, g);
+                line += buf;
+            }
+            std::snprintf(buf, sizeof(buf), "%dx response:%s", 1 << os, line.c_str());
+            check(worst < 0.05f, buf);
         }
     }
 

@@ -423,10 +423,12 @@ perte.
 
 \subsection{Suréchantillonnage}
 
-Les étages 2x sont des filtres demi-bande à phase linéaire de 47 coefficients (sinus cardinal
-fenêtré par Kaiser, $\beta = 8$), en forme polyphasée : montée (insertion d'un zéro sur deux puis
-filtrage) et descente (filtrage puis un échantillon sur deux). Le 4x enchaîne deux étages. Le
-retard d'un aller-retour est de 46 échantillons à la fréquence d'un étage 2x.
+Les étages 2x sont des filtres demi-bande à phase linéaire (sinus cardinal fenêtré par Kaiser,
+$\beta = 8$), en forme polyphasée : montée (insertion d'un zéro sur deux puis filtrage) et
+descente (filtrage puis un échantillon sur deux). L'étage qui coupe à la fréquence de Nyquist de
+l'hôte a 107 coefficients ; le 4x lui ajoute un second étage de 47 coefficients, qui coupe à la
+fréquence de l'hôte (bien au-dessus de l'audible). Le retard d'un aller-retour est de 106
+échantillons à 2 fois la fréquence de l'hôte pour le premier étage, 46 à 4 fois pour le second.
 
 \begin{figure}[htbp]
 \centering
@@ -435,20 +437,23 @@ retard d'un aller-retour est de 46 échantillons à la fréquence d'un étage 2x
 \label{fig:demibande}
 \end{figure}
 
-La réjection atteint 80\dB{} au-delà de 27\,kHz (hôte à 44,1\,kHz) ; la bande de transition
-s'étend de 17,6 à 27\,kHz. En 2x et 4x, le signal utile passe par la montée et la descente :
-mesuré sur le greffon (Mix 0, Clip Off, hôte à 44,1\,kHz), l'aigu est atténué de 0,08\dB{} à
-18\,kHz, 0,57\dB{} à 19\,kHz, 2,0\dB{} à 20\,kHz et 4,4\dB{} à 21\,kHz. Près de la fréquence
-de Nyquist, une partie de l'image du signal revient aussi en repliement (l'image d'un sinus de
-20\,kHz, à 24,1\,kHz, n'est rejetée que d'environ 37\dB). À 48\,kHz, ces fréquences montent
-d'environ 9\,\% ; à 96\,kHz, elles sont hors de l'audible. En 1x, rien de tout cela.
+Pour un hôte à 44,1\,kHz, la bande de transition va de 20,1 à 24,2\,kHz : la réponse est plate
+à 0,01\dB{} près jusqu'à 20\,kHz et la réjection dépasse 80\dB{} au-delà de 24,2\,kHz, si bien
+que ce que la distorsion crée au-dessus de la fréquence de Nyquist ne revient pas en repliement
+dans l'audible. Mesuré sur le greffon (Mix 0, Clip Off, montée et descente) : $-0{,}006$\dB{} à
+20\,kHz, $-1{,}3$\dB{} à 21\,kHz. À 48\,kHz, ces fréquences montent d'environ 9\,\%.
+
+Jusqu'au 25 novembre 2026, le premier étage n'avait que 47 coefficients : transition de 17,6 à
+27\,kHz, aigu atténué de 0,57\dB{} à 19\,kHz et 2,0\dB{} à 20\,kHz, et rejet de 19\dB{} seulement
+à 24,1\,kHz (courbe en tirets). Les 107 coefficients coûtent 30 échantillons de latence (0,7\,ms
+à 44,1\,kHz) et environ 45\,\% de calcul en plus en 2x, 25\,\% en 4x.
 
 \subsection{Latence}
 
 La latence ne dépend que de l'unité du Decay et du suréchantillonnage ; elle est déclarée à
 l'hôte, qui la compense. Avec $L_{\max}$ l'anticipation maximale en échantillons internes
 ($\operatorname{round}(30k/2)$ dans l'unité d'origine, $\operatorname{round}(2\,\mathrm{ms}\cdot
-f_i/2)$ en millisecondes) et $S$ le retard des filtres (0, 46 ou 138 échantillons internes en
+f_i/2)$ en millisecondes) et $S$ le retard des filtres (0, 106 ou 258 échantillons internes en
 1x, 2x, 4x), le signal est retardé de $L_{\mathrm{fix}} = L_{\max} + p$ (le plus petit $p \ge 0$
 qui rend $S + L_{\mathrm{fix}}$ multiple de $k$) et la latence vaut $(S + L_{\mathrm{fix}})/k$
 échantillons de l'hôte.
@@ -461,9 +466,9 @@ qui rend $S + L_{\mathrm{fix}}$ multiple de $k$) et la latence vaut $(S + L_{\ma
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}
 Hôte & 1x & 2x & 4x & 1x & 2x & 4x \\
 \midrule
-44,1\,kHz & 15 (0,34\,ms) & 38 (0,86) & 50 (1,13) & 44 (1,00) & 67 (1,52) & 79 (1,79) \\
-48\,kHz   & 15 (0,31) & 38 (0,79) & 50 (1,04) & 48 (1,00) & 71 (1,48) & 83 (1,73) \\
-96\,kHz   & 15 (0,16) & 38 (0,40) & 50 (0,52) & 96 (1,00) & 119 (1,24) & 131 (1,36) \\
+44,1\,kHz & 15 (0,34\,ms) & 68 (1,54) & 80 (1,81) & 44 (1,00) & 97 (2,20) & 109 (2,47) \\
+48\,kHz   & 15 (0,31) & 68 (1,42) & 80 (1,67) & 48 (1,00) & 101 (2,10) & 113 (2,35) \\
+96\,kHz   & 15 (0,16) & 68 (0,71) & 80 (0,83) & 96 (1,00) & 149 (1,55) & 161 (1,68) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -550,9 +555,10 @@ moins qu'avant cette mesure, sur le banc \texttt{tests/bench\_cpu.cpp}). La sort
 changée qu'en dessous de $-400$\dBFS.
 
 \subsection{Coût de calcul}
-Mesuré sur un Intel i7-8665U (préréglage Default, stéréo, 44,1\,kHz) : de l'ordre de 50\,ns par
-trame stéréo en 1x, 130 à 350\,ns en 2x, 250 à 650\,ns en 4x, soit 0,2 à 3\,\% d'un cœur par
-instance (mesures bruitées par la charge de la machine ; banc \texttt{tests/bench\_cpu.cpp}).
+Mesuré sur un Intel i7-8665U (préréglage Default, stéréo, 44,1\,kHz, machine peu chargée ;
+banc \texttt{tests/bench\_cpu.cpp}) : environ 47\,ns par trame stéréo en 1x, 165\,ns en 2x et
+280\,ns en 4x, soit 0,2\,\%, 0,7\,\% et 1,2\,\% d'un cœur par instance. Delta ajoute un filtre de
+sous-échantillonnage pendant qu'il est actif.
 
 % ==============================================================================================
 \section{Conseils d'utilisation}
@@ -570,8 +576,7 @@ instance (mesures bruitées par la charge de la machine ; banc \texttt{tests/ben
 \item[Écrêteur seul.] Préréglage Clipper : Gain règle de combien on pousse ; 4x pour limiter le
   repliement. Delta fait entendre ce qui est coupé.
 \item[Mastering.] 1x suffit souvent pour un maximiseur doux ; 2x ou 4x quand l'écrêteur
-  travaille beaucoup (moins de repliement), en gardant en tête l'atténuation au-dessus de
-  18\,kHz à 44,1 et 48\,kHz (section~\ref{sec:limites}). Plafond à $-0{,}3$\dB{} ou plus bas
+  travaille beaucoup (moins de repliement), au prix de 1,2 à 2,5\,ms de latence. Plafond à $-0{,}3$\dB{} ou plus bas
   pour un codage avec perte.
 \item[Comparer deux réglages.] Régler A, copier vers B (\ctl{A>B}), modifier B, puis basculer A
   | B avec Level match actif.
@@ -604,8 +609,8 @@ instance (mesures bruitées par la charge de la machine ; banc \texttt{tests/ben
 % ==============================================================================================
 \section{Limites connues}\label{sec:limites}
 \begin{itemize}
-\item En 2x et 4x, atténuation de l'extrême aigu (2\dB{} à 20\,kHz pour un hôte à 44,1\,kHz) et
-  léger repliement près de la fréquence de Nyquist, dus à la bande de transition des filtres.
+\item En 2x et 4x, entre 20,1 et 22,05\,kHz (hôte à 44,1\,kHz), l'aigu est atténué ($-1{,}3$\dB{}
+  à 21\,kHz) : bande de transition des filtres.
 \item Plafond garanti sur les échantillons, pas sur les crêtes entre échantillons.
 \item En Clip Off, la sortie peut dépasser le plafond de 4 à 7\dB{} (comportement d'origine).
 \item La saisie au clavier (valeurs, noms de préréglages) dépend de l'hôte : certains gardent le

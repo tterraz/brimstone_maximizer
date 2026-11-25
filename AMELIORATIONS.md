@@ -120,6 +120,15 @@ J. **Liste déroulante des préréglages** (à la place des flèches < >) et **p
    trait ; un fichier `.preset` par préréglage, commun à tous les projets et hôtes) : faits.
    Détail : `LISEZMOI.md` § « Interface ». Reste : essai des clics et de la saisie dans un vrai hôte.
 
+K. **Filtre de suréchantillonnage allongé** (demandé le 2026-11-25, après le constat fait en
+   rédigeant le manuel) : l'étage 2x passait de 47 à 107 coefficients (le second étage du 4x reste
+   à 47). Avant : -0,57 dB à 19 kHz, -2,0 dB à 20 kHz, 19 dB de rejet à 24,1 kHz ; après :
+   -0,006 dB à 20 kHz, ≥ 80 dB au-delà de 24,2 kHz (hôte à 44,1 kHz). Latence +30 échantillons
+   (2x : 38 → 68, 4x : 50 → 80). CPU, mesures simultanées sur deux cœurs, deux tours croisés
+   (machine peu chargée) : 2x 113 → 164 ns par trame (+45 %), 4x 224 → 281 ns (+25 %), soit
+   0,5 → 0,7 % et 1,0 → 1,2 % d'un cœur à 44,1 kHz ; 1x +4 à 8 % (~2 ns, les filtres n'y servent
+   pas : disposition du code). Test 4 de `test_dsp` : réponse à 18, 19, 20 kHz en 2x et 4x.
+
 ## Écarté
 - **Mode limiteur** (relâchement long séparé de l'anticipation, attaque lissée, détection des crêtes
   entre échantillons) : refusé par l'utilisateur le 2026-11-24. Ne pas le reproposer.

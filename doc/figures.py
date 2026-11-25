@@ -66,9 +66,11 @@ def core(x, decay, knee_db, ceiling_db=-0.1, clip="off", clip_knee=1.0):
     return y, env_at, g
 
 
-def halfband():
-    """47-tap half-band FIR of the oversampler (Kaiser beta = 8), normalised to a DC gain of 1."""
-    taps, center, beta = 47, 23, 8.0
+def halfband(taps=107):
+    """Half-band FIR of the oversampler (Kaiser beta = 8), normalised to a DC gain of 1: 107 taps
+    for the stage at the host Nyquist frequency (47 before 2026-11-25, and for the second stage of
+    4x)."""
+    center, beta = (taps - 1) // 2, 8.0
     n = np.arange(taps)
     t = (n - center) * 0.5
     h = 0.5 * np.sinc(t) * np.i0(beta * np.sqrt(np.maximum(0.0, 1.0 - ((n - center) / center) ** 2))) / np.i0(beta)
@@ -182,20 +184,24 @@ def fig_softclip():
 
 
 def fig_halfband():
-    """2x stage at a host rate of 44.1 kHz: one filter (up or down) and the chain up + down."""
-    h = halfband()
+    """2x stage at a host rate of 44.1 kHz: one filter and the chain up + down; 107 taps, and the
+    47 taps used before for comparison."""
     f = np.linspace(0, 0.5, 8000)   # cycles per high-rate sample
-    H = np.abs(np.exp(-2j * np.pi * np.outer(f, np.arange(len(h)))) @ h)
     fhost = 44.1
     k = f * 2 * fhost
     fig, ax = plt.subplots(figsize=(5.6, 3.1))
-    ax.plot(k, db(H), color=ORANGE, label="un filtre (montée ou descente)")
-    ax.plot(k, db(H * H), color=BLUE, lw=0.9, label="chaîne montée + descente (signal utile)")
+    resp = {}
+    for taps in (107, 47):
+        h = halfband(taps)
+        resp[taps] = np.abs(np.exp(-2j * np.pi * np.outer(f, np.arange(len(h)))) @ h)
+    ax.plot(k, db(resp[107]), color=ORANGE, label="107 coefficients : un filtre")
+    ax.plot(k, db(resp[107] ** 2), color=BLUE, lw=0.9, label="107 coefficients : montée + descente")
+    ax.plot(k, db(resp[47] ** 2), color=GREY, lw=0.8, ls="--", label="47 coefficients (avant) : montée + descente")
     ax.axvline(fhost / 2, color=GREY, ls=":", lw=0.8)
     ax.axvline(20.0, color=GREEN, ls="--", lw=0.8)
     ax.text(fhost / 2 + 7.0, -15, "Nyquist de l'hôte\n22,05 kHz", fontsize=7)
     ax.annotate("", xy=(fhost / 2, -12), xytext=(fhost / 2 + 6.8, -12), arrowprops=dict(arrowstyle="->", color=GREY))
-    ax.text(19.6, -110, "20 kHz", fontsize=7, ha="right")
+    ax.text(19.6, -45, "20 kHz", fontsize=7, ha="right")
     ax.set_xlim(0, fhost)
     ax.set_ylim(-120, 5)
     ax.set_xlabel("fréquence (kHz), étage 2x d'un hôte à 44,1 kHz")
@@ -203,7 +209,7 @@ def fig_halfband():
     ax.legend(loc="lower left", fontsize=7)
     save(fig, "fig_demi_bande.pdf")
     i20 = np.argmin(np.abs(k - 20.0))
-    return db(H[i20] ** 2), np.max(db(H[k >= 27.0]))
+    return db(resp[107][i20] ** 2), np.max(db(resp[107][k >= 24.2]))
 
 
 def fig_kweighting():
@@ -246,4 +252,4 @@ if __name__ == "__main__":
     fig_delta()
     print(f"hit, clip off: output peak {db(peak):+.2f} dBFS")
     print(f"largest overshoot: decay 2 -> {o2:.2f} dB, 3 -> {o3:.2f} dB, 30 -> {o30:.2f} dB")
-    print(f"half-band 2x at 44.1 kHz: chain {a20:.2f} dB at 20 kHz, one filter above 27 kHz <= {stop:.1f} dB")
+    print(f"half-band 2x at 44.1 kHz (107 taps): chain {a20:.3f} dB at 20 kHz, one filter above 24.2 kHz <= {stop:.1f} dB")
