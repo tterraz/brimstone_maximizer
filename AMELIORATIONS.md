@@ -42,8 +42,10 @@ Proposées le 2026-11-24, toutes jugées pertinentes par l'utilisateur, faites l
 - Proposer le correctif `patches/dpf-vst3-flush-parameters.patch` à DPF.
 - Version macOS (nécessite une machine macOS ou osxcross).
 
-## Propositions, 2e série (2026-11-24, en attente de décision)
-Classées par intérêt. A à H : non commencées (décision de l'utilisateur) ; E retirée ; I faite.
+## Propositions, 2e série (2026-11-24)
+Classées par intérêt. E retirée ; I faite. **Toutes acceptées le 2026-11-25** (C : valeur de
+chaque préréglage laissée à mon choix ; D : changement des valeurs accepté), faites dans l'ordre
+H, A, B, C, D, F, G, un commit par point.
 
 A. **Dénormaux** (robustesse, CPU) : sur un silence, l'enveloppe (`follow`) décroît
    exponentiellement vers 0 et passe en dénormaux après ~1 500 échantillons ; sur x86 sans FTZ,
@@ -66,6 +68,15 @@ G. **Durée de l'historique** au choix (3, 7, 30 s) et enregistrement du choix d
    projet (déjà en piste ci-dessus : à faire ensemble, état DPF).
 H. **Banc de CPU** dans `tests/` (temps par échantillon en 1x/2x/4x, avec et sans signal) : base
    pour A et pour toute optimisation future (règle : pas de gain annoncé sans mesure).
+   **Fait** (2026-11-25) : `tests/bench_cpu.cpp` (mode d'emploi en tête du fichier ; hors
+   `build.sh`, ~15 s). Default, 1x/2x/4x ; musique, silence après 1 s de musique, Bypass ; FPU de
+   l'appelant (FTZ/DAZ coupés) et FTZ/DAZ activés ; meilleur de 5. Première mesure (i7-8665U,
+   machine chargée par d'autres processus : valeurs absolues au simple au triple d'un lancement à
+   l'autre, rapports stables) : ~45-130 ns par trame stéréo en 1x, ~330-430 en 2x, ~530-650 en
+   4x (0,2 à 2,9 % d'un cœur) ; **silence : 1,4 à 2,1 fois plus lent sans FTZ** (dénormaux
+   confirmés : l'enveloppe reste bloquée sur le plus petit dénormal, 1,4e-45, car
+   1,4e-45 × 29/30 s'arrondit à lui-même) ; Bypass coûte autant que le traitement (il continue
+   pour le fondu).
 I. **Charte graphique alternative « Ash » (claire) et bouton de bascule** : **faite** le
    2026-11-24 (demandée par l'utilisateur ; mémorisation (b) : préférence de l'utilisateur pour
    toutes les instances, pas avec le projet). Détail : `LISEZMOI.md` § « Interface » ; captures

@@ -143,6 +143,9 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
 - `tests/test_dsp.cpp` (26 cas) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
+- Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par
+  trame stéréo et charge d'une instance, 1x/2x/4x, musique, silence, Bypass, FTZ/DAZ coupés ou
+  non. Mesures : `AMELIORATIONS.md` (H, A).
 - Validateur VST3 de Steinberg (`tools/validate_vst3.sh`) : 47/47 sur le VST3 Linux, 47/47 sur
   le VST3 Windows (validateur compilé avec MinGW, lancé sous Wine).
 - `tests/test_prefs.cpp` (7 cas, lancé par `build.sh` dans un dossier personnel vide) : fichier
