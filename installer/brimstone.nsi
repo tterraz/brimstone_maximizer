@@ -9,6 +9,7 @@ Unicode true
 !define NAME     "Brimstone Maximizer"
 !define VERSION  "1.1.0"
 !define BUNDLE   "brimstone_maximizer"
+!define MANUAL   "Brimstone-Maximizer-manuel.pdf"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\BrimstoneMaximizer"
 
 Name "${NAME} ${VERSION}"
@@ -36,6 +37,7 @@ FunctionEnd
 
 Function un.onInit
     SetRegView 64
+    SetShellVarContext all
 FunctionEnd
 
 Section "VST3" SecVST3
@@ -58,7 +60,19 @@ Section "CLAP" SecCLAP
     File "../bin/windows/${BUNDLE}.clap"
 SectionEnd
 
+; user manual (French, PDF) next to the licence, with a Start menu shortcut for all users
+Section "Manual (PDF)" SecManual
+    SetShellVarContext all
+    SetOutPath "$PROGRAMFILES64\Brimstone"
+    File "/oname=${MANUAL}" "../doc/manuel.pdf"
+    CreateDirectory "$SMPROGRAMS\${NAME}"
+    CreateShortcut "$SMPROGRAMS\${NAME}\${NAME} - manuel.lnk" "$PROGRAMFILES64\Brimstone\${MANUAL}"
+SectionEnd
+
 Section "Uninstall"
+    Delete "$SMPROGRAMS\${NAME}\${NAME} - manuel.lnk"
+    RMDir "$SMPROGRAMS\${NAME}"
+    Delete "$PROGRAMFILES64\Brimstone\${MANUAL}"
     RMDir /r "$COMMONFILES64\VST3\${BUNDLE}.vst3"
     Delete "$COMMONFILES64\CLAP\${BUNDLE}.clap"
     Delete "$PROGRAMFILES64\Brimstone\COPYING"

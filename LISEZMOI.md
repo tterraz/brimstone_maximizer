@@ -145,7 +145,10 @@ jamais dans `build.sh`. Préréglages de l'utilisateur dans les captures : préf
 2. tests du DSP (`tests/test_dsp.cpp`) ;
 3. Windows → `bin/windows/`, Linux → `bin/linux/` ;
 4. installateur Windows (`installer/brimstone.nsi`) si `makensis` est présent (`apt install nsis`)
-   → `bin/Brimstone-Maximizer-1.1.0-setup.exe`.
+   → `bin/Brimstone-Maximizer-1.1.0-setup.exe` (VST3 imposé, CLAP et manuel PDF en option, cochés
+   par défaut ; le manuel va dans `Program Files\Brimstone\Brimstone-Maximizer-manuel.pdf`, avec un
+   raccourci dans le menu Démarrer pour tous les utilisateurs). Le PDF n'est pas refait par
+   `build.sh` : recompiler `doc/manuel.tex` avant si le manuel a changé.
 
 Installation manuelle sous Windows : copier `bin/windows/brimstone_maximizer.vst3` (le dossier entier)
 dans `C:\Program Files\Common Files\VST3\`, `brimstone_maximizer.clap` dans `...\Common Files\CLAP\`.
@@ -189,6 +192,8 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
   (2026-11-25).
 - Installateur (NSIS 3.09) : installation et désinstallation silencieuses (`/S`) sous Wine :
   VST3 (identique à `bin/windows/`), CLAP, licence, entrée « Programmes » du registre, puis tout retiré.
+  Refait le 2026-11-25 avec le manuel (préfixe Wine neuf) : PDF identique à `doc/manuel.pdf`,
+  raccourci dans `ProgramData\...\Start Menu\Programs\Brimstone Maximizer\`, puis tout retiré.
 - Non vérifié : chargement dans un vrai logiciel audio Windows ; installateur en mode graphique
   et sur un vrai Windows ; interactions de l'interface (seul l'affichage a été vu ; clic sur
   la pastille de thème, la liste des préréglages, l'enregistrement et la suppression compris ;
