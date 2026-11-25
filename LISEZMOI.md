@@ -208,7 +208,11 @@ Améliorations : voir `AMELIORATIONS.md`.
   l'utilisateur (pas d'Xvfb) ; une variante par capture (`BUILD_DIR_SUFFIX=-demo-<n>`).
 - Sous Wine, `APPDATA` est fixé par Wine (`drive_c/users/<nom>/AppData/Roaming`) : une valeur
   donnée depuis Linux est ignorée ; pour essayer un autre dossier, `_wputenv` dans le programme.
-- Reste : voir `AMELIORATIONS.md` (2e série : A-D, F-H à décider par l'utilisateur ; essais sur un
-  vrai Windows, dont le clic sur la pastille de thème ; correctif à proposer à DPF).
+- 2e série d'`AMELIORATIONS.md` terminée le 2026-11-25 (A-D, F-H, J), un commit par point.
+- Reste : essais dans un vrai hôte (clics et saisie au clavier : liste des préréglages,
+  enregistrement d'un nom, A/B, durée de l'historique, pastille de thème ; rechargement d'un
+  projet avec ses états A/B et historique) ; validateur VST3 Windows à relancer ; correctif à
+  proposer à DPF ; version encore 1.1.0 (deux paramètres et deux états ajoutés : passage en
+  1.2.0 à décider).
 - Compatibilité avec la 1.1.0 : réglages des projets relus par symbole ; un projet 1.1.0 en Soft
   reprend le soft knee par défaut (1 dB) au lieu de 4,44 dB (crêtes ~0,6 dB plus hautes).
