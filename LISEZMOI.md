@@ -8,6 +8,10 @@ Formats : VST3 et CLAP pour Windows 64 bits ; VST3, CLAP et LV2 pour Linux.
 ![interface, thème Ember](capture_interface.png)
 ![interface, thème Ash](capture_interface_ash.png)
 
+**Manuel d'utilisation** (réglages, préréglages, description détaillée de l'algorithme avec
+figures) : `doc/manuel.pdf` ; source `doc/manuel.tex` (pdflatex ×3 dans `doc/`), figures
+`doc/figures.py` (mêmes formules que le DSP).
+
 ## Algorithme
 Cœur identique à l'original :
 - enveloppe : attaque instantanée, décroissance de `1/decay` par échantillon ;
@@ -33,7 +37,7 @@ entrée → suréchantillonnage → Drive → cœur → × Ceiling, mélange ave
 | Knee | -90..0 dB ; au-dessus, crêtes ramenées au plafond |
 | Drive | 0..24 dB, gain d'entrée du seul signal traité |
 | Ceiling | -12..0 dB, niveau de sortie maximal |
-| Clip | Off (original : la sortie peut dépasser 0 dBFS, jusqu'à +6 dB), Hard, Soft (linéaire jusqu'au soft knee puis épaule en tanh jusqu'au plafond) |
+| Clip | Off (original : la sortie peut dépasser le plafond, jusqu'à +7 dB pour un Decay de 3 échantillons, +4,4 dB pour 30 ; manuel § 7.2), Hard, Soft (linéaire jusqu'au soft knee puis épaule en tanh jusqu'au plafond) |
 | Soft knee | 0,1-6 dB sous le plafond : début de l'arrondi en Soft (petit bouton à droite de Clip, grisé hors Soft). Crête poussée au plafond par le maximiseur : -0,23 dB à 1 dB, -0,45 dB à 2 dB, -0,87 dB à 4,44 dB (60 % du plafond, la valeur fixe de la 1.1.0). Préréglages : 1 dB (Default, Loud master), 2 dB (Subtle), 4,44 dB (Wide crush, caractère gardé) ; sans effet dans les autres (Off ou Hard) |
 | Stereo | Link (détecteur commun), L/R (chaque canal : l'original), M/S |
 | Mix | sec/traité ; à 0 % le maximiseur est hors circuit (écrêteur pur) |
