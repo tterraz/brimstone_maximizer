@@ -71,6 +71,12 @@ I. **Charte graphique alternative « Ash » (claire) et bouton de bascule** : **
    toutes les instances, pas avec le projet). Détail : `LISEZMOI.md` § « Interface » ; captures
    `capture_interface.png` (Ember) et `capture_interface_ash.png` (Ash).
 
+## Demandé le 2026-11-25
+J. **Liste déroulante des préréglages** (à la place des flèches < >) et **préréglages de
+   l'utilisateur** (enregistrer, remplacer, supprimer ; sections FACTORY et USER séparées par un
+   trait ; un fichier `.preset` par préréglage, commun à tous les projets et hôtes) : faits.
+   Détail : `LISEZMOI.md` § « Interface ». Reste : essai des clics et de la saisie dans un vrai hôte.
+
 ## Écarté
 - **Mode limiteur** (relâchement long séparé de l'anticipation, attaque lissée, détection des crêtes
   entre échantillons) : refusé par l'utilisateur le 2026-11-24. Ne pas le reproposer.

@@ -45,8 +45,10 @@ Changement de Decay sans clic : quand round(decay/2) change, un second détecteu
 historique des gains) démarre avec la nouvelle anticipation et les gains sont fondus en 5 ms ;
 chaque détecteur reste cohérent, donc ni clic ni dépassement (test 5).
 
-Préréglages : Default, Original (swh), Subtle, Loud master, Wide crush, Destruction, Clipper
-(sélecteur en haut de l'interface, aussi exposés à l'hôte ; « * » si modifié).
+Préréglages d'usine : Default, Original (swh), Subtle, Loud master, Wide crush, Destruction,
+Clipper (liste déroulante en haut de l'interface, aussi exposés à l'hôte ; « * » si modifié).
+Préréglages de l'utilisateur : enregistrés depuis l'interface, communs à tous les projets et à
+tous les hôtes (voir « Interface »).
 
 Écrêteur pur (préréglage Clipper) : Mix 0 % court-circuite le cœur du maximiseur ; le signal
 d'origine passe par Gain (de combien on pousse, +3 dB dans le préréglage), puis par l'écrêtage
@@ -72,6 +74,32 @@ sa légende :
 
 Le choix des courbes affichées n'est pas enregistré avec le projet (toutes visibles à l'ouverture). La courbe de transfert
 donne le niveau de sortie pour un niveau d'entrée stable, tous réglages compris (Mix aussi).
+**Préréglages** (2026-11-25, remplace les flèches < >) : liste déroulante de l'en-tête, en deux
+sections séparées par un trait, FACTORY (usine) puis USER (les vôtres, par ordre alphabétique),
+puis « Save current settings... ». Clic : ouvre la liste, le préréglage courant est marqué d'un
+point ; clic sur un nom : le charge ; clic ailleurs ou Échap : ferme sans rien changer ; molette
+sur la boîte fermée : suivant ou précédent (usine puis utilisateur, en boucle) ; liste plus haute
+que la fenêtre : défile à la molette.
+- **Enregistrer** : « Save current settings... », puis taper le nom dans la boîte (proposé : le
+  nom du préréglage de l'utilisateur en cours), Entrée : enregistre, Échap ou clic ailleurs :
+  annule. Une bulle dit ce que fera Entrée : enregistrer, remplacer un préréglage du même nom
+  (casse ignorée), ou refuser (nom d'un préréglage d'usine, nom invalide pour Windows, écriture
+  impossible). Noms : 1 à 24 caractères ASCII imprimables, sans `< > : " / \ | ? *`.
+- **Supprimer** : croix à droite d'un préréglage de l'utilisateur survolé ; premier clic :
+  « delete? », second clic : supprime (sans retour en arrière).
+- **Fichiers** : un fichier `<nom>.preset` par préréglage dans `presets/`, à côté de
+  `brimstone.conf` (`%APPDATA%\Brimstone\presets\`, `~/.config/brimstone/presets/`) ; lignes
+  `clé=valeur` lisibles (`decay`, `decay_ms`, `decay_unit`, `knee`, `drive`, `ceiling`, `clip`,
+  `stereo`, `mix`, `gain`, `oversampling`, `match` ; Bypass exclu), nombres en point décimal quelle
+  que soit la locale de l'hôte ; clé absente : valeur par défaut, valeur hors bornes : ramenée
+  dans les bornes, ligne inconnue : ignorée. Copier un fichier suffit à partager un préréglage.
+  Le fichier est relu au chargement et la liste à chaque ouverture : un préréglage enregistré
+  dans une instance apparaît dans les autres. Le désinstalleur laisse ces fichiers.
+- L'hôte ne voit que les préréglages d'usine (liste de DPF fixée à la compilation) ; ses propres
+  préréglages (par exemple `.vstpreset`) restent possibles et indépendants.
+Code : `plugin/BrimstoneUserPresets.hpp` (fichiers), `BrimstoneUI.cpp` (liste, saisie du nom).
+
+![liste des préréglages et saisie d'un nom](capture_presets.png)
 **Bulle d'aide sur chaque élément** (boutons, sélecteurs, vu-mètres, courbe, préréglages, Bypass).
 Boutons : glisser verticalement (Maj : fin), molette, double-clic ou Ctrl+clic : défaut,
 **clic droit : saisie au clavier** (Entrée, Échap).
@@ -87,7 +115,11 @@ Couleurs : structure `Theme` de `BrimstoneUI.cpp` (une instance par thème) ; le
 du fichier : `plugin/BrimstonePrefs.hpp`.
 
 Captures : `-DBRIMSTONE_UI_DEMO=<zone>` (et `_PRESET=<n>`) force une bulle d'aide et un préréglage
-dans une version de démonstration ; jamais dans `build.sh`.
+dans une version de démonstration, `-DBRIMSTONE_UI_DEMO_MENU=<n>` ouvre la liste des préréglages,
+souris sur la ligne n (titres et traits comptés, à partir de 0 ; `-DBRIMSTONE_UI_DEMO_ARM=1` :
+croix déjà cliquée une fois), `-DBRIMSTONE_UI_DEMO_NAME='"texte"'` montre la saisie d'un nom ;
+jamais dans `build.sh`. Préréglages de l'utilisateur dans les captures : préfixe Wine dédié
+(`WINEPREFIX=...`), rempli par `tests/test_user_presets.cpp` compilé avec MinGW.
 
 ## Compiler
 `./build.sh` (Linux, MinGW-w64 `-posix`, git) :
@@ -117,13 +149,22 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
   absent, écriture et relecture des deux thèmes, valeur invalide, lignes inconnues et fins CRLF.
   Vérifié aussi : `XDG_CONFIG_HOME`, `HOME` absent (écriture refusée sans erreur), Windows sous
   Wine, y compris un `APPDATA` accentué.
+- `tests/test_user_presets.cpp` (17 cas, lancé par `build.sh` dans le même dossier vide, sous une
+  locale à virgule décimale `fr_FR.UTF-8`) : noms valides et refusés (caractères, espaces et
+  points, noms réservés de Windows, longueur, noms d'usine), écriture et relecture exactes,
+  liste triée sans casse, remplacement d'un nom de casse différente, suppression, fichier écrit
+  à la main (clés absentes, inconnues, hors bornes, CRLF), autres fichiers ignorés. Lancé aussi
+  sous Wine (compilé avec MinGW : `_wfindfirst`, `APPDATA`).
 - Interface affichée par la version autonome Windows sous Wine, thèmes Ember et Ash (captures
-  ci-dessus ; l'historique y est synthétique, faute d'audio sous Wine).
+  ci-dessus ; l'historique y est synthétique, faute d'audio sous Wine) ; liste des préréglages
+  ouverte (avec préréglages de l'utilisateur et croix armée) et saisie d'un nom vues
+  (2026-11-25).
 - Installateur (NSIS 3.09) : installation et désinstallation silencieuses (`/S`) sous Wine :
   VST3 (identique à `bin/windows/`), CLAP, licence, entrée « Programmes » du registre, puis tout retiré.
 - Non vérifié : chargement dans un vrai logiciel audio Windows ; installateur en mode graphique
   et sur un vrai Windows ; interactions de l'interface (seul l'affichage a été vu ; clic sur
-  la pastille de thème compris) ; macOS. Validateur VST3 non relancé après les thèmes (interface seule).
+  la pastille de thème, la liste des préréglages, l'enregistrement et la suppression compris ;
+  saisie au clavier dans un vrai hôte : certains hôtes gardent le clavier pour eux) ; macOS. Validateur VST3 non relancé après les thèmes (interface seule).
 
 Améliorations : voir `AMELIORATIONS.md`.
 

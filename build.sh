@@ -22,6 +22,9 @@ echo "== Preferences tests (in an empty temporary home)"
 g++ -O2 -std=gnu++17 -Iplugin tests/test_prefs.cpp -o build/test_prefs
 PREFS_HOME=$(mktemp -d)
 env -u XDG_CONFIG_HOME HOME="$PREFS_HOME" ./build/test_prefs
+echo "== User presets tests (same empty home)"
+g++ -O2 -std=gnu++11 -Iplugin tests/test_user_presets.cpp -o build/test_user_presets
+env -u XDG_CONFIG_HOME HOME="$PREFS_HOME" ./build/test_user_presets
 rm -r "${PREFS_HOME:?}"
 
 echo "== Windows (MinGW-w64)"
