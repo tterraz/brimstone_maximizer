@@ -21,7 +21,13 @@
  *
  * Signal flow (internal rate = host rate x oversampling):
  *   x -> upsample -> [drive -> maximizer core -> x ceiling] mixed with dry -> gain
- *     -> clip at ceiling -> downsample -> safety clamp -> level match -> bypass crossfade
+ *     -> clip at ceiling -> downsample -> safety clamp -> level match (or delta) -> bypass crossfade
+ *
+ * Delta: output minus the same chain with the maximizer gain held at its makeup (1 / knee) and
+ * no clipping, i.e. the delayed upsampled input x (1 + (drive ceiling / knee - 1) mix) gain,
+ * downsampled by its own filter (so the filters cancel): what the maximizer and the clipper
+ * change, without the makeup gain (no level match).  Computed only while Delta is on;
+ * crossfaded over 10 ms like Bypass, which has priority.
  *
  * Latency: the signal is always delayed by a fixed Lfix internal samples, and the gain by
  * Lfix - round(decay / 2), so that the decay can change without changing the latency.
@@ -393,6 +399,10 @@ protected:
             set(p, "Level match", "match", "");
             p.hints |= kParameterIsBoolean | kParameterIsInteger;
             break;
+        case kParamDelta:
+            set(p, "Delta", "delta", "");
+            p.hints |= kParameterIsBoolean | kParameterIsInteger;
+            break;
         case kParamMeterIn:   output(p, "Input level", "meter_in", "dB"); break;
         case kParamMeterGR:   output(p, "Gain reduction", "meter_gr", "dB"); break;
         case kParamMeterOut:  output(p, "Output level", "meter_out", "dB"); break;
@@ -471,6 +481,14 @@ protected:
         const float mixT = fParams[kParamMix] * 0.01f;
         const float outT = dbToGain(fParams[kParamGain]);
         const float bypassT = fParams[kParamBypass] > 0.5f ? 1.0f : 0.0f;
+        const float deltaT = fParams[kParamDelta] > 0.5f ? 1.0f : 0.0f;
+        const bool deltaOn = deltaT > 0.0f || fDelta > 0.0f;
+        if (deltaT > 0.0f && fDelta == 0.0f)
+        {
+            // the reference filter restarts (its state is stale), under the crossfade
+            fOsRef[0].reset();
+            fOsRef[1].reset();
+        }
         const float sm = fSmoothInt, smBase = fSmoothBase;
 
         const float* const inL = inputs[0];
@@ -491,7 +509,7 @@ protected:
             fOsCh[0].up(x[0], up[0]);
             fOsCh[1].up(x[1], up[1]);
 
-            float wetInt[2][4];
+            float wetInt[2][4], refInt[2][4];
             for (unsigned o = 0; o < os; ++o)
             {
                 fKnee += (kneeT - fKnee) * sm;
@@ -575,6 +593,9 @@ protected:
                     if (yc != y)
                         minClip = std::fmin(minClip, yc / y);
                     wetInt[c][o] = yc;
+                    // linear chain for delta: maximizer gain at its makeup, no clip
+                    if (deltaOn)
+                        refInt[c][o] = dry * (1.0f + (fDrive * fCeil / fKnee - 1.0f) * fMix) * fOut;
                 }
             }
 
@@ -594,19 +615,39 @@ protected:
             sumIn += static_cast<double>(x[0]) * x[0] + static_cast<double>(x[1]) * x[1];
             sumOut += static_cast<double>(p[0]) * p[0] + static_cast<double>(p[1]) * p[1];
 
+            // input delayed by the latency (bypass, delta)
+            const unsigned bw = fBasePos;
+            const unsigned br = (bw - fLatency) & fBaseMask;
+            fBase[0][bw] = x[0];
+            fBase[1][bw] = x[1];
+            fBasePos = (bw + 1) & fBaseMask;
+
+            // delta: difference with the linear chain (maximizer gain held at 1 / knee, no clip)
+            fDelta += (deltaT - fDelta) * smBase;
+            if (deltaT == 0.0f && fDelta < 1e-6f)
+                fDelta = 0.0f;
+            else if (deltaT == 1.0f && fDelta > 1.0f - 1e-6f)
+                fDelta = 1.0f;
+            float d[2] = { 0.0f, 0.0f };
+            if (deltaOn)
+            {
+                d[0] = p[0] - fOsRef[0].down(refInt[0]);
+                d[1] = p[1] - fOsRef[1].down(refInt[1]);
+            }
+
             if (match)
             {
                 const float comp = compStart + (compEnd - compStart) * (static_cast<float>(i + 1) / frames);
                 p[0] *= comp;
                 p[1] *= comp;
             }
+            if (fDelta > 0.0f)
+            {
+                p[0] += (d[0] - p[0]) * fDelta;
+                p[1] += (d[1] - p[1]) * fDelta;
+            }
 
             // bypass: input delayed by the latency, crossfaded
-            const unsigned bw = fBasePos;
-            const unsigned br = (bw - fLatency) & fBaseMask;
-            fBase[0][bw] = x[0];
-            fBase[1][bw] = x[1];
-            fBasePos = (bw + 1) & fBaseMask;
             fBypass += (bypassT - fBypass) * smBase;
             if (bypassT == 0.0f && fBypass < 1e-6f)
                 fBypass = 0.0f;
@@ -759,6 +800,8 @@ private:
         fOs.setFactor(os);
         fOsCh[0].setFactor(os);
         fOsCh[1].setFactor(os);
+        fOsRef[0].setFactor(os);
+        fOsRef[1].setFactor(os);
         setLatency(fLatency);
         fParams[kParamLatency] = static_cast<float>(fLatency);   // shown before the first run()
         resetState();
@@ -778,6 +821,8 @@ private:
         }
         fOsCh[0].reset();
         fOsCh[1].reset();
+        fOsRef[0].reset();
+        fOsRef[1].reset();
         fPos = fBasePos = 0;
 
         float dInt = fParams[kParamDecayUnit] > 0.5f
@@ -800,6 +845,7 @@ private:
         fMix = fParams[kParamMix] * 0.01f;
         fOut = dbToGain(fParams[kParamGain]);
         fBypass = fParams[kParamBypass] > 0.5f ? 1.0f : 0.0f;
+        fDelta = fParams[kParamDelta] > 0.5f ? 1.0f : 0.0f;
         fSmoothInt = static_cast<float>(1.0 - std::exp(-1.0 / (0.01 * sr * os)));
         fSmoothBase = static_cast<float>(1.0 - std::exp(-1.0 / (0.01 * sr)));
         fMeterIn = fMeterOut = 0.0f;
@@ -816,6 +862,7 @@ private:
 
     Oversampler fOs;          // only holds the factor
     Oversampler fOsCh[2];
+    Oversampler fOsRef[2];    // downsampling of the linear chain (delta)
     std::vector<float> fSig[2], fDry[2], fBase[2];
     Detector fDet[2];
     int fActive = 0;
@@ -824,7 +871,7 @@ private:
     unsigned fMask = 0, fBaseMask = 0, fPos = 0, fBasePos = 0;
     unsigned fLfix = 0, fLatency = 0;
     int fConfigKey = -1;
-    float fKnee = 1.0f, fDrive = 1.0f, fCeil = 1.0f, fMix = 1.0f, fOut = 1.0f, fBypass = 0.0f;
+    float fKnee = 1.0f, fDrive = 1.0f, fCeil = 1.0f, fMix = 1.0f, fOut = 1.0f, fBypass = 0.0f, fDelta = 0.0f;
     float fSmoothInt = 0.0f, fSmoothBase = 0.0f;
     float fMeterIn = 0.0f, fMeterOut = 0.0f, fMeterRel = 1.0f, fMeterClip = 1.0f;
     RecentPeak fRecentIn, fRecentOut, fRecentGR, fRecentClip;

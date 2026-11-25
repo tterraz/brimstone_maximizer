@@ -22,6 +22,7 @@ enum BrimstoneParam {
     kParamOversampling,// 0 = 1x, 1 = 2x, 2 = 4x
     kParamMatch,       // level-matched listening (0/1)
     kParamBypass,      // host bypass
+    kParamDelta,       // listen to the difference: output minus the input at the linear gain (0/1)
     // outputs
     kParamMeterIn,     // input peak, dBFS
     kParamMeterGR,     // gain reduction below makeup, dB
@@ -57,6 +58,7 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
     {   0.0f,   2.0f,   0.0f },   // oversampling
     {   0.0f,   1.0f,   0.0f },   // match
     {   0.0f,   1.0f,   0.0f },   // bypass
+    {   0.0f,   1.0f,   0.0f },   // delta
     { -60.0f,   6.0f, -60.0f },   // meter in
     { -40.0f,   0.0f,   0.0f },   // meter GR
     { -60.0f,   6.0f, -60.0f },   // meter out
@@ -70,7 +72,8 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
 };
 
 // ------------------------------------------------------------------------------------------------
-// Factory presets: values of the input parameters kParamDecay .. kParamMatch (bypass excluded).
+// Factory presets: values of the input parameters kParamDecay .. kParamMatch (bypass and delta,
+// monitoring switches, excluded).
 
 static const int kPresetParamCount = kParamBypass;
 

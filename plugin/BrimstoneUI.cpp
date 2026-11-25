@@ -171,7 +171,8 @@ static const Rect kStereo  = { 176, 361, 140, 22 };
 static const Rect kGraph   = { 348, 96, 244, 200 };
 static const Rect kClip    = { 400, 418, 192, 22 };
 static const Rect kOvers   = { 734, 326, 138, 22 };
-static const Rect kMatch   = { 622, 364, 120, 24 };
+static const Rect kMatch   = { 622, 358, 120, 24 };
+static const Rect kDelta   = { 750, 358, 122, 24 };
 static const Rect kPreset  = { 456, 16, 206, 26 };   // drop-down box; the list opens below it
 static const float kMenuItemH = 22.0f;     // preset list: item
 static const float kMenuHeaderH = 20.0f;   // section title (FACTORY, USER)
@@ -193,7 +194,7 @@ static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
 
 // hover zones with a tooltip (knobs are handled separately)
 enum {
-    kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZonePreset,
+    kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZoneDelta, kZonePreset,
     kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kNumZones
 };
 
@@ -216,6 +217,9 @@ static const Zone kZones[kNumZones] = {
       "Runs the processing at 2x or 4x the sample rate: less aliasing, more latency and CPU." },
     { kMatch, "LEVEL MATCH",
       "Lowers the output by the loudness gained, to compare with Bypass at equal level." },
+    { kDelta, "DELTA",
+      "Listen to what the maximizer and the clipper change: the output minus the same chain "
+      "without reduction nor clipping (makeup gain removed). Bypass has priority." },
     { kPreset, "PRESETS",
       "Click to choose a preset: factory presets, then yours (saved for all projects on this "
       "computer). Wheel: next / previous. A * means a setting was changed since it was loaded." },
@@ -448,6 +452,7 @@ protected:
         if (kBypass.contains(x, y)) { toggle(kParamBypass); return true; }
         if (kTheme.contains(x, y)) { setTheme(static_cast<int>(segmentAt(kTheme, x, BrimstonePrefs::kThemeCount))); return true; }
         if (kMatch.contains(x, y)) { toggle(kParamMatch); return true; }
+        if (kDelta.contains(x, y)) { toggle(kParamDelta); return true; }
         if (kUnit.contains(x, y)) { setDecayUnit(x > kUnit.x + kUnit.w * 0.5f ? 1 : 0); return true; }
         if (kStereo.contains(x, y)) { setOnce(kParamStereo, segmentAt(kStereo, x, 3)); return true; }
         if (kClip.contains(x, y)) { setOnce(kParamClip, segmentAt(kClip, x, 3)); return true; }
@@ -1291,17 +1296,22 @@ private:
         led(kMatch.x + 14, kMatch.y + kMatch.h * 0.5f, match);
         label(kMatch.x + kMatch.w * 0.5f + 8, kMatch.y + kMatch.h * 0.5f, 10, match ? fT->onAccent : fT->dim,
               ALIGN_CENTER | ALIGN_MIDDLE, "LEVEL MATCH", 1);
-        char loud[40];
-        std::snprintf(loud, sizeof(loud), "%+.1f dB louder", fValues[kParamMeterLoud]);
-        label(kMatch.x + kMatch.w + 12, kMatch.y + kMatch.h * 0.5f, 10, fT->gold, ALIGN_LEFT | ALIGN_MIDDLE, loud);
+        const bool delta = fValues[kParamDelta] > 0.5f;
+        button(kDelta, delta, nullptr);
+        led(kDelta.x + 14, kDelta.y + kDelta.h * 0.5f, delta);
+        label(kDelta.x + kDelta.w * 0.5f + 8, kDelta.y + kDelta.h * 0.5f, 10, delta ? fT->onAccent : fT->dim,
+              ALIGN_CENTER | ALIGN_MIDDLE, "DELTA", 1);
+        char loud[48];
+        std::snprintf(loud, sizeof(loud), "loudness: %+.1f dB louder", fValues[kParamMeterLoud]);
+        label(kSecMon.x + 12, 394, 10, fT->gold, ALIGN_LEFT | ALIGN_MIDDLE, loud);
 
         char lat[64];
         const double sr = getSampleRate() > 0.0 ? getSampleRate() : 44100.0;
         std::snprintf(lat, sizeof(lat), "latency %.0f samples (%.2f ms)", fValues[kParamLatency],
                       fValues[kParamLatency] * 1000.0 / sr);
-        label(kSecMon.x + 12, 408, 9, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, lat, 0.5f);
-        label(kSecMon.x + 12, 424, 9, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "knobs: drag, wheel, shift = fine", 0.5f);
-        label(kSecMon.x + 12, 438, 9, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE,
+        label(kSecMon.x + 12, 410, 9, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, lat, 0.5f);
+        label(kSecMon.x + 12, 425, 9, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "knobs: drag, wheel, shift = fine", 0.5f);
+        label(kSecMon.x + 12, 439, 9, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE,
               "double-click: reset, right-click: type", 0.5f);
     }
 

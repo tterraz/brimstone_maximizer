@@ -39,6 +39,7 @@ entrée → suréchantillonnage → Drive → cœur → × Ceiling, mélange ave
 | Gain | -24..+12 dB après le mélange, avant l'écrêtage : pousse les crêtes au-dessus du plafond (s'appelait Output) |
 | Oversampling | 1x, 2x, 4x (demi-bandes FIR 47 coefficients, ~80 dB de réjection) |
 | Level match | compense le gain de sonie (RMS ~1,5 s) pour comparer avec Bypass à niveau égal ; l'écart est affiché (« LOUDER ») |
+| Delta | fait entendre ce que le maximiseur et l'écrêteur changent : sortie moins la même chaîne sans réduction ni écrêtage (gain du maximiseur tenu à 1/knee, mêmes filtres de suréchantillonnage, donc sans le gain de compensation) ; sans Level match ; fondu de 10 ms ; Bypass prioritaire ; non enregistré dans les préréglages |
 | Bypass | paramètre Bypass déclaré à l'hôte ; entrée retardée de la latence, fondu de 10 ms |
 
 Latence déclarée à l'hôte, fixe pour une unité et un facteur donnés : 15 échantillons (échantillons, 1x),
@@ -66,7 +67,7 @@ droite dans l'ordre du signal (flèches entre elles) :
    « OFF: mix at 0 % » quand Mix est à 0 % ;
 2. **OUTPUT STAGE** : courbe de transfert, Mix, Gain, Ceiling, Clip ;
 3. **MONITOR** : vu-mètres IN, GR (maximiseur, 0 quand Mix = 0 %), CLIP (écrêteur), OUT ;
-   Oversampling, Level match et écart de sonie, latence.
+   Oversampling, Level match, Delta, écart de sonie, latence.
 
 **Historique** (~7 s, un point toutes les 25 ms, crêtes des 30 dernières ms, donc aucune crête
 perdue entre deux points), cinq courbes fines sur une même bande, chacune masquable d'un clic sur
@@ -144,7 +145,8 @@ dans `C:\Program Files\Common Files\VST3\`, `brimstone_maximizer.clap` dans `...
 resynchronisé après rechargement d'un préréglage). Correctif à proposer à DPF.
 
 ## Vérifications
-- `tests/test_dsp.cpp` (28 cas, dont l'état du FPU rétabli après `run`) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
+- `tests/test_dsp.cpp` (33 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
+  chaîne linéaire en 1x et 4x, égal à ce que retire l'écrêteur avec Clipper, Bypass prioritaire) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
 - Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par

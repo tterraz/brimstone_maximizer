@@ -13,6 +13,8 @@
  * 6. Presets: every preset gives a finite output under the ceiling.
  * 7. Clipper preset: output == clip(input x gain) at 1x.
  * 8. Meters: maximizer and clipper reductions, history peaks.
+ * 10. Delta: zero when nothing is clipped nor reduced; with the Clipper preset, exactly what the
+ *     clipper removes; Bypass has priority.
  * 9. Denormals: FTZ / DAZ are switched on in run() only, the FPU state of the caller is
  *    restored (the gain in silence is measured by tests/bench_cpu.cpp).
  */
@@ -59,6 +61,7 @@ static void reference(const std::vector<float>& x, const std::vector<float>& det
 struct Settings {
     float values[kPresetParamCount];
     float bypass = 0.0f;
+    float delta = 0.0f;
 };
 
 static Settings originalSettings(float decay, float knee, int stereo)
@@ -81,6 +84,7 @@ static uint32_t process(const Settings& s, const std::vector<float>& L, const st
     for (int i = 0; i < kPresetParamCount; ++i)
         p.setParameterValue(i, s.values[i]);
     p.setParameterValue(kParamBypass, s.bypass);
+    p.setParameterValue(kParamDelta, s.delta);
     p.activate();
 
     const size_t N = L.size();
@@ -355,6 +359,68 @@ int main()
 #else
         check(true, "not an SSE processor: nothing to test");
 #endif
+    }
+
+    // 10. delta ---------------------------------------------------------------------------------
+    std::printf("10. delta (output minus the linear chain)\n");
+    {
+        int k = 0;
+        while (std::strcmp(kBrimstonePresets[k].name, "Clipper") != 0)
+            ++k;
+        Settings s;
+        for (int i = 0; i < kPresetParamCount; ++i)
+            s.values[i] = kBrimstonePresets[k].values[i];
+        s.values[kParamOversampling] = 0.0f;
+        s.delta = 1.0f;
+        const uint32_t lat = process(s, L, R, oL, oR);
+        const float g = dbToGain(s.values[kParamGain]), c = dbToGain(s.values[kParamCeiling]);
+        float err = 0.0f, most = 0.0f;
+        for (size_t i = lat; i < N; ++i)
+        {
+            const float x = L[i - lat] * g;
+            const float y = std::fmin(std::fmax(x, -c), c) - x;   // what the clipper removes
+            err = std::max(err, fabsf(oL[i] - y));
+            most = std::max(most, fabsf(y));
+        }
+        char buf[160];
+        std::snprintf(buf, sizeof(buf), "clipper 1x: delta == clip(x) - x, max error %.1e (largest %.2f)", err, most);
+        check(err < 1e-6f && most > 0.1f, buf);
+
+        // mix 0, clip off: the chain is linear, the delta is the filters' error only
+        for (const int os : { 0, 2 })
+        {
+            s.values[kParamClip] = kClipOff;
+            s.values[kParamOversampling] = (float)os;
+            process(s, L, R, oL, oR);
+            float peak = 0.0f;
+            for (size_t i = 0; i < N; ++i)
+                peak = std::max(peak, std::max(fabsf(oL[i]), fabsf(oR[i])));
+            std::snprintf(buf, sizeof(buf), "mix 0, clip off, %dx: delta peak %.1e", 1 << os, peak);
+            check(peak < 1e-6f, buf);
+        }
+
+        // Default, signal below the knee: the maximizer gain stays at its makeup, delta ~ 0
+        Settings def;
+        for (int i = 0; i < kPresetParamCount; ++i)
+            def.values[i] = kBrimstonePresets[0].values[i];
+        def.delta = 1.0f;
+        std::vector<float> Q(N);
+        for (size_t i = 0; i < N; ++i)
+            Q[i] = 0.05f * sinf(0.02f * i);   // -26 dBFS < knee -12 dB
+        process(def, Q, Q, oL, oR);
+        float peak = 0.0f;
+        for (size_t i = 4410; i < N; ++i)   // after the 10 ms crossfade and the attack
+            peak = std::max(peak, fabsf(oL[i]));
+        std::snprintf(buf, sizeof(buf), "default, -26 dBFS sine (below the knee): delta peak %.1e", peak);
+        check(peak < 1e-5f, buf);
+
+        // bypass has priority
+        def.bypass = 1.0f;
+        const uint32_t lb = process(def, L, R, oL, oR);
+        bool same = true;
+        for (size_t i = lb; i < N; ++i)
+            same = same && oL[i] == L[i - lb] && oR[i] == R[i - lb];
+        check(same, "bypass and delta: output == input delayed, exactly");
     }
 
     std::printf("%s\n", gFailures ? "FAILED" : "all tests passed");

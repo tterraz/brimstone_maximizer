@@ -62,6 +62,13 @@ A. **Dénormaux** (robustesse, CPU) : sur un silence, l'enveloppe (`follow`) dé
 B. **Écoute de la différence** (« Delta ») : bouton qui fait entendre sortie − entrée (retardée de
    la latence), ce que le maximiseur et l'écrêteur retirent ; courant sur ce type de plugin, peu
    de code (l'entrée retardée existe déjà pour Bypass).
+   **Fait** (2026-11-25) : paramètre `delta` (après Bypass : seuls les indices des sorties
+   changent, l'automation des projets 1.1.0 reste en place ; l'état est enregistré par symbole).
+   Sortie moins la chaîne linéaire (gain du maximiseur tenu à 1/knee, sans écrêtage), celle-ci
+   sous-échantillonnée par son propre filtre : un premier essai avec l'entrée retardée à la
+   fréquence de l'hôte laissait en 4x la coupure des filtres (0,33 de crête sur du bruit blanc).
+   Calculée seulement quand Delta est actif. Sortie hors Delta inchangée (7 préréglages ×
+   1x/2x/4x ; seuls des écarts de 5e-35 sur des sorties de 1e-28). Test 10 de `test_dsp`.
 C. **Douceur de l'écrêteur Soft réglable** (corrige le défaut connu de `LISEZMOI.md`) : paramètre
    Knee du Clip (seuil de 60 % aujourd'hui, en dur) ; à 90-95 %, Default n'arrondirait plus ~1 dB
    en permanence. Change le son de Default seulement si on change sa valeur (décision).
