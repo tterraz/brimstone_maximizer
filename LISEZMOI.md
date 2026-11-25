@@ -244,6 +244,16 @@ Améliorations : voir `AMELIORATIONS.md`.
   enregistrement d'un nom, A/B, durée de l'historique, pastille de thème ; rechargement d'un
   projet avec ses états A/B et historique) ; validateur VST3 Windows à relancer ; correctif à
   proposer à DPF.
-- Version : reste 1.1.0 malgré les ajouts du 2026-11-25 (décision de l'utilisateur : le
-  logiciel n'a jamais été utilisé, aucun projet à préserver). Les réglages des projets sont
+- **Release GitHub** (`v1.1.0` publiée le 2026-11-25, première publique) : `./build.sh` complet sur
+  `master` propre ; fichiers assemblés dans `build/release/` (non suivi) : installateur
+  `bin/Brimstone-Maximizer-1.1.0-setup.exe`, `Brimstone-Maximizer-1.1.0-windows.zip` (VST3, CLAP),
+  `Brimstone-Maximizer-1.1.0-linux-x86_64.tar.gz` (VST3, CLAP, LV2), chacun avec `COPYING` et le manuel, et le manuel
+  seul `Brimstone-Maximizer-manuel.pdf` ; notes en anglais (`build/release/notes.md` : téléchargements,
+  installation, essais faits et non faits, licence) ; étiquette annotée `v1.1.0` (auteur Claude) poussée,
+  puis `/usr/bin/gh release create v1.1.0 --repo tterraz/brimstone_maximizer --title ... --notes-file notes.md <fichiers>`
+  (`gh` hors du PATH du bac à sable, déjà connecté au compte `tterraz`). **La version 1.1.0 est
+  publiée** : tout changement livré ensuite demande un nouveau numéro (`getVersion`, installateur,
+  documents ; choix de l'utilisateur).
+- Version : restée 1.1.0 malgré les ajouts du 2026-11-25 (décision de l'utilisateur : le
+  logiciel n'avait jamais été utilisé), puis publiée telle quelle. Les réglages des projets sont
   relus par symbole : ajouter un paramètre plus tard ne casse pas un projet.
