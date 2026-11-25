@@ -15,6 +15,7 @@
  * 8. Meters: maximizer and clipper reductions, history peaks.
  * 10. Delta: zero when nothing is clipped nor reduced; with the Clipper preset, exactly what the
  *     clipper removes; Bypass has priority.
+ * 11. Soft clip knee: at 1x with Mix 0, output == soft clip of (input x gain) from the knee.
  * 9. Denormals: FTZ / DAZ are switched on in run() only, the FPU state of the caller is
  *    restored (the gain in silence is measured by tests/bench_cpu.cpp).
  */
@@ -421,6 +422,35 @@ int main()
         for (size_t i = lb; i < N; ++i)
             same = same && oL[i] == L[i - lb] && oR[i] == R[i - lb];
         check(same, "bypass and delta: output == input delayed, exactly");
+    }
+
+    // 11. soft clip knee -----------------------------------------------------------------------
+    std::printf("11. soft clip knee (mix 0, 1x)\n");
+    {
+        Settings s;
+        for (int i = 0; i < kPresetParamCount; ++i)
+            s.values[i] = kBrimstonePresets[0].values[i];
+        s.values[kParamMix] = 0.0f;
+        s.values[kParamGain] = 6.0f;
+        s.values[kParamClip] = kClipSoft;
+        for (const float kneeDb : { 0.1f, 1.0f, 4.44f, 6.0f })
+        {
+            s.values[kParamClipKnee] = kneeDb;
+            const uint32_t lat = process(s, L, R, oL, oR);
+            const float g = dbToGain(6.0f), c = dbToGain(s.values[kParamCeiling]);
+            const float t = c * dbToGain(-kneeDb);
+            float err = 0.0f, peak = 0.0f;
+            for (size_t i = lat; i < N; ++i)
+            {
+                const float x = L[i - lat] * g;
+                err = std::max(err, fabsf(oL[i] - softClip(x, c, t)));
+                peak = std::max(peak, fabsf(oL[i]));
+            }
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "knee %.2f dB: out == soft clip from the knee, max error %.1e, peak %.2f dBFS",
+                          kneeDb, err, 20.0f * log10f(peak));
+            check(err < 1e-6f && peak <= c, buf);
+        }
     }
 
     std::printf("%s\n", gFailures ? "FAILED" : "all tests passed");

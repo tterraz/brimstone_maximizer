@@ -72,6 +72,12 @@ B. **Écoute de la différence** (« Delta ») : bouton qui fait entendre sortie
 C. **Douceur de l'écrêteur Soft réglable** (corrige le défaut connu de `LISEZMOI.md`) : paramètre
    Knee du Clip (seuil de 60 % aujourd'hui, en dur) ; à 90-95 %, Default n'arrondirait plus ~1 dB
    en permanence. Change le son de Default seulement si on change sa valeur (décision).
+   **Fait** (2026-11-25) : paramètre `clip_knee` « Soft knee », 0,1-6 dB sous le plafond (après
+   Level match : l'automation des paramètres existants reste en place), lissé comme les autres.
+   Valeurs choisies (laissées à mon choix) : Default et Loud master 1 dB (-0,23 dB sur les
+   crêtes au plafond au lieu de -0,87), Subtle 2 dB (plus doux, -0,45 dB), Wide crush 4,44 dB
+   (son de la 1.1.0 gardé), autres 1 dB (sans effet : Off ou Hard). Défaut du paramètre : 1 dB.
+   Projets 1.1.0 en Soft : 1 dB au lieu de 4,44 dB (le symbole manque dans leur état). Test 11.
 D. **Sonie selon ITU-R BS.1770** (pondération K) pour Level match et l'écart affiché, au lieu du
    RMS large bande : la comparaison suit mieux l'oreille (le RMS surestime les graves). Affichage
    possible en LU. Change les valeurs affichées et la compensation (décision).

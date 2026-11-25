@@ -43,7 +43,7 @@ static const size_t kMaxNameLength = 24;
 // file keys of the preset parameters kParamDecay .. kParamMatch
 static const char* const kUserPresetKeys[kPresetParamCount] = {
     "decay", "decay_ms", "decay_unit", "knee", "drive", "ceiling", "clip", "stereo", "mix", "gain",
-    "oversampling", "match",
+    "oversampling", "match", "clip_knee",
 };
 
 static inline bool validName(const std::string& name)

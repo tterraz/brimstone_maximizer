@@ -236,10 +236,9 @@ private:
 
 // ------------------------------------------------------------------------------------------------
 
-static inline float softClip(const float x, const float ceiling)
+// linear up to t (below the ceiling: the knee), then a tanh shoulder that never exceeds the ceiling
+static inline float softClip(const float x, const float ceiling, const float t)
 {
-    // linear up to 60 % of the ceiling, then a tanh shoulder that never exceeds the ceiling
-    const float t = 0.6f * ceiling;
     const float a = std::fabs(x);
     if (a <= t)
         return x;
@@ -395,6 +394,7 @@ protected:
             set(p, "Oversampling", "oversampling", "");
             enumeration(p, 3, "1x", "2x", "4x");
             break;
+        case kParamClipKnee: set(p, "Clip knee", "clip_knee", "dB"); break;
         case kParamMatch:
             set(p, "Level match", "match", "");
             p.hints |= kParameterIsBoolean | kParameterIsInteger;
@@ -480,6 +480,7 @@ protected:
         const float ceilT = dbToGain(fParams[kParamCeiling]);
         const float mixT = fParams[kParamMix] * 0.01f;
         const float outT = dbToGain(fParams[kParamGain]);
+        const float softT = dbToGain(-fParams[kParamClipKnee]);   // knee of the soft clip / ceiling
         const float bypassT = fParams[kParamBypass] > 0.5f ? 1.0f : 0.0f;
         const float deltaT = fParams[kParamDelta] > 0.5f ? 1.0f : 0.0f;
         const bool deltaOn = deltaT > 0.0f || fDelta > 0.0f;
@@ -517,6 +518,7 @@ protected:
                 fCeil += (ceilT - fCeil) * sm;
                 fMix += (mixT - fMix) * sm;
                 fOut += (outT - fOut) * sm;
+                fSoft += (softT - fSoft) * sm;
 
                 Detector& da = fDet[fActive];
                 Detector& db = fDet[1 - fActive];
@@ -589,7 +591,7 @@ protected:
                     if (clip == kClipHard)
                         yc = std::fmin(std::fmax(y, -fCeil), fCeil);
                     else if (clip == kClipSoft)
-                        yc = softClip(y, fCeil);
+                        yc = softClip(y, fCeil, fSoft * fCeil);
                     if (yc != y)
                         minClip = std::fmin(minClip, yc / y);
                     wetInt[c][o] = yc;
@@ -844,6 +846,7 @@ private:
         fCeil = dbToGain(fParams[kParamCeiling]);
         fMix = fParams[kParamMix] * 0.01f;
         fOut = dbToGain(fParams[kParamGain]);
+        fSoft = dbToGain(-fParams[kParamClipKnee]);
         fBypass = fParams[kParamBypass] > 0.5f ? 1.0f : 0.0f;
         fDelta = fParams[kParamDelta] > 0.5f ? 1.0f : 0.0f;
         fSmoothInt = static_cast<float>(1.0 - std::exp(-1.0 / (0.01 * sr * os)));
@@ -871,7 +874,8 @@ private:
     unsigned fMask = 0, fBaseMask = 0, fPos = 0, fBasePos = 0;
     unsigned fLfix = 0, fLatency = 0;
     int fConfigKey = -1;
-    float fKnee = 1.0f, fDrive = 1.0f, fCeil = 1.0f, fMix = 1.0f, fOut = 1.0f, fBypass = 0.0f, fDelta = 0.0f;
+    float fKnee = 1.0f, fDrive = 1.0f, fCeil = 1.0f, fMix = 1.0f, fOut = 1.0f, fSoft = 0.6f;
+    float fBypass = 0.0f, fDelta = 0.0f;
     float fSmoothInt = 0.0f, fSmoothBase = 0.0f;
     float fMeterIn = 0.0f, fMeterOut = 0.0f, fMeterRel = 1.0f, fMeterClip = 1.0f;
     RecentPeak fRecentIn, fRecentOut, fRecentGR, fRecentClip;

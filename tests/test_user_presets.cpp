@@ -48,12 +48,12 @@ int main()
     check(!save("Default", kBrimstonePresets[0].values) && !save("loud MASTER", kBrimstonePresets[0].values),
           "factory names refused");
 
-    const float a[kPresetParamCount] = { 17.25f, 0.4123457f, 1, -33.3f, 6.5f, -0.3f, 1, 2, 62.5f, -1.75f, 2, 1 };
+    const float a[kPresetParamCount] = { 17.25f, 0.4123457f, 1, -33.3f, 6.5f, -0.3f, 1, 2, 62.5f, -1.75f, 2, 1, 2.7f };
     check(save("Bright", a), "save");
     float r[kPresetParamCount] = { 0 };
     check(load("Bright", r) && sameValues(a, r), "read back exactly");
 
-    const float b[kPresetParamCount] = { 2, 0.05f, 0, -90, 0, -12, 0, 0, 0, -24, 0, 0 };
+    const float b[kPresetParamCount] = { 2, 0.05f, 0, -90, 0, -12, 0, 0, 0, -24, 0, 0, 0.1f };
     check(save("aggressive", b) && save("Calm", kBrimstonePresets[2].values), "save two more");
     const std::vector<std::string> names = list();
     check(names.size() == 3 && names[0] == "aggressive" && names[1] == "Bright" && names[2] == "Calm",

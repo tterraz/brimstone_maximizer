@@ -21,6 +21,7 @@ enum BrimstoneParam {
     kParamGain,        // gain into the clipper (after the mix), dB
     kParamOversampling,// 0 = 1x, 1 = 2x, 2 = 4x
     kParamMatch,       // level-matched listening (0/1)
+    kParamClipKnee,    // soft clip: the rounding starts this many dB below the ceiling
     kParamBypass,      // host bypass
     kParamDelta,       // listen to the difference: output minus the input at the linear gain (0/1)
     // outputs
@@ -57,6 +58,7 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
     { -24.0f,  12.0f,   0.0f },   // output
     {   0.0f,   2.0f,   0.0f },   // oversampling
     {   0.0f,   1.0f,   0.0f },   // match
+    {   0.1f,   6.0f,   1.0f },   // clip knee, dB below the ceiling (1.1.0: 4.44 dB = 60 %)
     {   0.0f,   1.0f,   0.0f },   // bypass
     {   0.0f,   1.0f,   0.0f },   // delta
     { -60.0f,   6.0f, -60.0f },   // meter in
@@ -72,8 +74,9 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
 };
 
 // ------------------------------------------------------------------------------------------------
-// Factory presets: values of the input parameters kParamDecay .. kParamMatch (bypass and delta,
-// monitoring switches, excluded).
+// Factory presets: values of the input parameters kParamDecay .. kParamClipKnee (bypass and
+// delta, monitoring switches, excluded).  Clip knee: 1 dB costs 0.23 dB on peaks pushed to the
+// ceiling, 2 dB 0.45 dB, 4.44 dB (the fixed 60 % of 1.1.0) 0.87 dB.
 
 static const int kPresetParamCount = kParamBypass;
 
@@ -83,15 +86,15 @@ struct BrimstonePreset {
 };
 
 static const BrimstonePreset kBrimstonePresets[] = {
-    //                     decay  ms   unit  knee  drive ceil  clip stereo mix  gain os  match
-    { "Default",         { 30.0f, 0.68f, 0, -12.0f, 0.0f, -0.1f, 2, 0, 100.0f,  0.0f, 0, 0 } },
-    { "Original (swh)",  { 30.0f, 0.68f, 0, -12.0f, 0.0f,  0.0f, 0, 1, 100.0f,  0.0f, 0, 0 } },
-    { "Subtle",          { 30.0f, 0.68f, 0,  -6.0f, 0.0f, -0.3f, 2, 0,  60.0f,  0.0f, 1, 0 } },
-    { "Loud master",     { 30.0f, 1.50f, 1, -14.0f, 3.0f, -0.3f, 2, 0, 100.0f,  0.0f, 2, 0 } },
-    { "Wide crush",      { 12.0f, 0.27f, 0, -24.0f, 0.0f, -0.5f, 2, 2,  70.0f,  0.0f, 1, 0 } },
-    { "Destruction",     {  2.0f, 0.05f, 0, -45.0f, 12.0f, -1.0f, 1, 1, 100.0f, -3.0f, 0, 0 } },
+    //                     decay  ms   unit  knee  drive ceil  clip stereo mix  gain os  match cknee
+    { "Default",         { 30.0f, 0.68f, 0, -12.0f, 0.0f, -0.1f, 2, 0, 100.0f,  0.0f, 0, 0, 1.0f } },
+    { "Original (swh)",  { 30.0f, 0.68f, 0, -12.0f, 0.0f,  0.0f, 0, 1, 100.0f,  0.0f, 0, 0, 1.0f } },
+    { "Subtle",          { 30.0f, 0.68f, 0,  -6.0f, 0.0f, -0.3f, 2, 0,  60.0f,  0.0f, 1, 0, 2.0f } },
+    { "Loud master",     { 30.0f, 1.50f, 1, -14.0f, 3.0f, -0.3f, 2, 0, 100.0f,  0.0f, 2, 0, 1.0f } },
+    { "Wide crush",      { 12.0f, 0.27f, 0, -24.0f, 0.0f, -0.5f, 2, 2,  70.0f,  0.0f, 1, 0, 4.44f } },
+    { "Destruction",     {  2.0f, 0.05f, 0, -45.0f, 12.0f, -1.0f, 1, 1, 100.0f, -3.0f, 0, 0, 1.0f } },
     // pure clipper: mix 0 % bypasses the maximizer core, Gain drives the clipper
-    { "Clipper",         { 30.0f, 0.68f, 0, -12.0f, 0.0f, -0.3f, 1, 1,   0.0f,  3.0f, 2, 0 } },
+    { "Clipper",         { 30.0f, 0.68f, 0, -12.0f, 0.0f, -0.3f, 1, 1,   0.0f,  3.0f, 2, 0, 1.0f } },
 };
 
 static const int kBrimstonePresetCount = sizeof(kBrimstonePresets) / sizeof(kBrimstonePresets[0]);

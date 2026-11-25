@@ -33,7 +33,8 @@ entrée → suréchantillonnage → Drive → cœur → × Ceiling, mélange ave
 | Knee | -90..0 dB ; au-dessus, crêtes ramenées au plafond |
 | Drive | 0..24 dB, gain d'entrée du seul signal traité |
 | Ceiling | -12..0 dB, niveau de sortie maximal |
-| Clip | Off (original : la sortie peut dépasser 0 dBFS, jusqu'à +6 dB), Hard, Soft (linéaire jusqu'à 60 % du plafond puis épaule en tanh) |
+| Clip | Off (original : la sortie peut dépasser 0 dBFS, jusqu'à +6 dB), Hard, Soft (linéaire jusqu'au soft knee puis épaule en tanh jusqu'au plafond) |
+| Soft knee | 0,1-6 dB sous le plafond : début de l'arrondi en Soft (petit bouton à droite de Clip, grisé hors Soft). Crête poussée au plafond par le maximiseur : -0,23 dB à 1 dB, -0,45 dB à 2 dB, -0,87 dB à 4,44 dB (60 % du plafond, la valeur fixe de la 1.1.0). Préréglages : 1 dB (Default, Loud master), 2 dB (Subtle), 4,44 dB (Wide crush, caractère gardé) ; sans effet dans les autres (Off ou Hard) |
 | Stereo | Link (détecteur commun), L/R (chaque canal : l'original), M/S |
 | Mix | sec/traité ; à 0 % le maximiseur est hors circuit (écrêteur pur) |
 | Gain | -24..+12 dB après le mélange, avant l'écrêtage : pousse les crêtes au-dessus du plafond (s'appelait Output) |
@@ -145,8 +146,9 @@ dans `C:\Program Files\Common Files\VST3\`, `brimstone_maximizer.clap` dans `...
 resynchronisé après rechargement d'un préréglage). Correctif à proposer à DPF.
 
 ## Vérifications
-- `tests/test_dsp.cpp` (33 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
-  chaîne linéaire en 1x et 4x, égal à ce que retire l'écrêteur avec Clipper, Bypass prioritaire) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
+- `tests/test_dsp.cpp` (37 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
+  chaîne linéaire en 1x et 4x, égal à ce que retire l'écrêteur avec Clipper, Bypass prioritaire ;
+  soft knee : sortie exacte en 1x de 0,1 à 6 dB) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
 - Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par
@@ -195,5 +197,5 @@ Améliorations : voir `AMELIORATIONS.md`.
   donnée depuis Linux est ignorée ; pour essayer un autre dossier, `_wputenv` dans le programme.
 - Reste : voir `AMELIORATIONS.md` (2e série : A-D, F-H à décider par l'utilisateur ; essais sur un
   vrai Windows, dont le clic sur la pastille de thème ; correctif à proposer à DPF).
-- Défaut connu, non changé : dans Default (Soft), l'écrêteur arrondit toujours ~1 dB, car il
-  commence à 60 % du plafond alors que le maximiseur pousse les crêtes au plafond.
+- Compatibilité avec la 1.1.0 : réglages des projets relus par symbole ; un projet 1.1.0 en Soft
+  reprend le soft knee par défaut (1 dB) au lieu de 4,44 dB (crêtes ~0,6 dB plus hautes).

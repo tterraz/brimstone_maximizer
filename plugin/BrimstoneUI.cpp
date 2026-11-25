@@ -141,7 +141,7 @@ static const Rect kSecMon  = { 610, 70, 270, 380 };
 static const Rect kHistory = { 20, 460, 860, 128 };
 static const Rect kHistPlot = { 130, 468, 718, 112 };   // waveform / reduction area
 
-enum { kKnobDecay = 0, kKnobKnee, kKnobDrive, kKnobMix, kKnobGain, kKnobCeiling, kNumKnobs };
+enum { kKnobDecay = 0, kKnobKnee, kKnobDrive, kKnobMix, kKnobGain, kKnobCeiling, kKnobClipKnee, kNumKnobs };
 
 struct KnobDef {
     int param;          // kParamDecay is replaced by kParamDecayMs when the unit is ms
@@ -149,27 +149,31 @@ struct KnobDef {
     bool labelRight;    // small knob of the maximizer section: label on the right
     const char* label;
     const char* help;
+    bool compact;       // tiny knob in a row of selectors: no label, value on the right
 };
 
 static const KnobDef kKnobs[kNumKnobs] = {
     { kParamDecay,   100.0f, 165.0f, 50.0f, false, "DECAY",
-      "Release of the envelope. Short: harder and grittier; long: smoother." },
+      "Release of the envelope. Short: harder and grittier; long: smoother.", false },
     { kParamKnee,    250.0f, 165.0f, 50.0f, false, "KNEE",
-      "Peaks above the knee are pushed to the ceiling; below it the gain is constant (makeup)." },
+      "Peaks above the knee are pushed to the ceiling; below it the gain is constant (makeup).", false },
     { kParamDrive,    66.0f, 372.0f, 26.0f, true,  "DRIVE",
-      "Gain into the maximizer only: the dry signal of the mix is not changed." },
+      "Gain into the maximizer only: the dry signal of the mix is not changed.", false },
     { kParamMix,     390.0f, 345.0f, 24.0f, false, "MIX",
-      "Balance between the dry signal and the maximizer. 0 %: maximizer off, pure clipper." },
+      "Balance between the dry signal and the maximizer. 0 %: maximizer off, pure clipper.", false },
     { kParamGain,    470.0f, 345.0f, 24.0f, false, "GAIN",
-      "Gain after the mix, into the clipper: pushes the peaks over the ceiling." },
+      "Gain after the mix, into the clipper: pushes the peaks over the ceiling.", false },
     { kParamCeiling, 550.0f, 345.0f, 24.0f, false, "CEILING",
-      "Highest output level. Peaks above it are clipped when Clip is Hard or Soft." },
+      "Highest output level. Peaks above it are clipped when Clip is Hard or Soft.", false },
+    { kParamClipKnee, 547.0f, 429.0f, 9.0f, false, "SOFT KNEE",
+      "Clip Soft: the rounding starts this many dB below the ceiling. Small: closer to Hard, louder "
+      "peaks; large: rounder, peaks pushed to the ceiling come out lower.", true },
 };
 
 static const Rect kUnit    = { 55, 270, 90, 18 };
 static const Rect kStereo  = { 176, 361, 140, 22 };
 static const Rect kGraph   = { 348, 96, 244, 200 };
-static const Rect kClip    = { 400, 418, 192, 22 };
+static const Rect kClip    = { 400, 418, 130, 22 };
 static const Rect kOvers   = { 734, 326, 138, 22 };
 static const Rect kMatch   = { 622, 358, 120, 24 };
 static const Rect kDelta   = { 750, 358, 122, 24 };
@@ -212,7 +216,8 @@ static const Zone kZones[kNumZones] = {
     { kGraph, "TRANSFER CURVE",
       "Output level for a steady input level, all settings included. The dot follows the input." },
     { kClip, "CLIP",
-      "OFF: like the original, may exceed 0 dBFS. HARD: flat at the ceiling. SOFT: rounded above 60 %." },
+      "OFF: like the original, may exceed 0 dBFS. HARD: flat at the ceiling. SOFT: rounded from "
+      "the soft knee (small knob on the right) up to the ceiling." },
     { kOvers, "OVERSAMPLING",
       "Runs the processing at 2x or 4x the sample rate: less aliasing, more latency and CPU." },
     { kMatch, "LEVEL MATCH",
@@ -1025,6 +1030,7 @@ private:
         case kParamMix:     std::snprintf(buf, size, "%.0f %%", v); break;
         case kParamGain:    std::snprintf(buf, size, "%+.1f dB", v); break;
         case kParamCeiling: std::snprintf(buf, size, "%.1f dB", v); break;
+        case kParamClipKnee: std::snprintf(buf, size, "%.1f dB", v); break;
         default:            std::snprintf(buf, size, "%.2f", v); break;
         }
     }
@@ -1278,7 +1284,12 @@ private:
         drawKnob(kKnobCeiling);
         label(kSecOut.x + 12, kClip.y + kClip.h * 0.5f, 10, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "CLIP", 1);
         const char* const clip[3] = { "OFF", "HARD", "SOFT" };
-        segmented(kClip, clip, 3, static_cast<int>(std::lround(fValues[kParamClip])), 10);
+        const int clipMode = static_cast<int>(std::lround(fValues[kParamClip]));
+        segmented(kClip, clip, 3, clipMode, 10);
+        if (clipMode != kClipSoft)
+            globalAlpha(0.3f);   // the soft knee only acts in Soft
+        drawKnob(kKnobClipKnee);
+        globalAlpha(1.0f);
     }
 
     void drawMonitorSection()
@@ -1323,8 +1334,8 @@ private:
         const float n = toNorm(p, fValues[p]);
         const float a = kArcStart + n * kArcSweep;
         const bool big = k.r > 40.0f;
-        const float track = k.r + (big ? 9.0f : 6.0f);
-        const float tw = big ? 5.0f : 3.5f;
+        const float track = k.r + (big ? 9.0f : k.compact ? 4.0f : 6.0f);
+        const float tw = big ? 5.0f : k.compact ? 2.5f : 3.5f;
 
         beginPath();
         arc(k.cx, k.cy, track, kArcStart, kArcStart + kArcSweep, CW);
@@ -1372,10 +1383,10 @@ private:
         moveTo(k.cx + ca * k.r * 0.30f, k.cy + sa * k.r * 0.30f);
         lineTo(k.cx + ca * k.r * 0.78f, k.cy + sa * k.r * 0.78f);
         lineCap(ROUND);
-        strokeWidth(big ? 4.0f : 3.0f);
+        strokeWidth(big ? 4.0f : k.compact ? 2.4f : 3.0f);
         strokeColor(fT->pointerGlow);
         stroke();
-        strokeWidth(big ? 2.2f : 1.8f);
+        strokeWidth(big ? 2.2f : k.compact ? 1.4f : 1.8f);
         strokeColor(active ? fT->gold : fT->pointer);
         stroke();
 
@@ -1383,7 +1394,13 @@ private:
         valueText(p, buf, sizeof(buf));
         float vx, vy;
         int align;
-        if (k.labelRight)
+        if (k.compact)
+        {
+            vx = k.cx + k.r + 10;   // no label (it is in the tooltip), the value on the right
+            vy = k.cy;
+            align = ALIGN_LEFT | ALIGN_MIDDLE;
+        }
+        else if (k.labelRight)
         {
             label(k.cx + k.r + 16, k.cy - 9, 12, fT->text, ALIGN_LEFT | ALIGN_MIDDLE, k.label, 2);
             vx = k.cx + k.r + 16;
@@ -1401,7 +1418,7 @@ private:
 
         if (i == fEdit)
         {
-            const float bw = 76.0f, bx = k.labelRight ? vx - 4 : vx - bw * 0.5f;
+            const float bw = k.compact ? 46.0f : 76.0f, bx = k.labelRight || k.compact ? vx - 4 : vx - bw * 0.5f;
             beginPath();
             roundedRect(bx, vy - 10, bw, 20, 4);
             fillColor(fT->deepWell);
@@ -1415,13 +1432,13 @@ private:
         }
         else
         {
-            label(vx, vy, big ? 12 : 11, active ? fT->gold : fT->dim, align, buf);
+            label(vx, vy, big ? 12 : k.compact ? 10 : 11, active ? fT->gold : fT->dim, align, buf);
         }
     }
 
-    static float softClip(const float x, const float ceiling)
+    float softClip(const float x, const float ceiling) const
     {
-        const float t = 0.6f * ceiling;
+        const float t = std::pow(10.0f, -fValues[kParamClipKnee] * 0.05f) * ceiling;
         if (x <= t)
             return x;
         const float r = ceiling - t;
