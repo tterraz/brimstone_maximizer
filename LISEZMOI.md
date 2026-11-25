@@ -67,7 +67,7 @@ au plafond (Hard, -0,3 dB), en 4x. Plafond garanti sur les échantillons, pas su
 entre échantillons.
 
 ## Interface
-900 × 600, redimensionnable (proportions gardées), HiDPI. Trois sections numérotées, de gauche à
+900 × 680 (600 avant le 2026-11-25, historique dédoublé), redimensionnable (proportions gardées), HiDPI. Trois sections numérotées, de gauche à
 droite dans l'ordre du signal (flèches entre elles) :
 1. **MAXIMIZER** : Decay (et son unité), Knee, Drive, Stereo ; grisée avec la mention
    « OFF: mix at 0 % » quand Mix est à 0 % ;
@@ -76,12 +76,13 @@ droite dans l'ordre du signal (flèches entre elles) :
    Oversampling, Level match, Delta, écart de sonie, latence.
 
 **Historique** (3, 7 ou 30 s au choix sous la légende, 7 s par défaut ; un point toutes les 25 ms, crêtes des 30 dernières ms, donc aucune crête
-perdue entre deux points), cinq courbes fines sur une même bande, chacune masquable d'un clic sur
-sa légende :
-- *input*, *output* : niveaux de crête, montent depuis le bas (dBFS, échelle à droite ; pointillés : plafond) ;
-- *maximizer GR*, *clipper GR* : réductions, descendent depuis le haut (dB, échelle à gauche) ;
-- *out - in* : gain total réellement appliqué, sortie moins entrée (dB, échelle centrée sur 0,
-  graduée dans le graphique à droite ; interrompue quand l'entrée est muette).
+perdue entre deux points), deux graphiques superposés sur le même axe du temps, chacun à une
+seule échelle (graduée à droite), cinq courbes fines masquables d'un clic sur leur légende :
+- **niveaux** (dBFS, 0 en haut à -48 en bas, grille tous les 12 dB) : *input*, *output*
+  (crêtes ; pointillés : plafond) ;
+- **gains** (dB, +24 en haut à -24 en bas, 0 au milieu en tirets) : *maximizer GR*, *clipper GR*
+  (réductions, sous 0) et *out - in* (gain total réellement appliqué, sortie moins entrée ;
+  interrompue quand l'entrée est muette).
 
 La durée et le choix des courbes affichées sont enregistrés avec le projet (état DPF `history`,
 `seconds=<3|7|30>;show=<un 0/1 par courbe>`) ; nouvelle instance : 7 s, toutes visibles. La courbe de transfert

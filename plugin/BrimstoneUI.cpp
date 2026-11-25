@@ -4,11 +4,12 @@
  * Copyright (C) 2026 Brimstone authors
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Everything is drawn in a logical 900 x 600 space, scaled to the window size (resizable,
+ * Everything is drawn in a logical 900 x 680 space, scaled to the window size (resizable,
  * aspect ratio kept).  Three sections, left to right in the order of the signal:
  *   1 MAXIMIZER (decay, knee, drive, stereo) -> 2 OUTPUT STAGE (mix, gain, ceiling, clip)
- *   -> 3 MONITOR (meters, oversampling, level match), and the history below (input and output
- * waveforms, maximizer and clipper reductions; click a legend entry to show / hide it).
+ *   -> 3 MONITOR (meters, oversampling, level match), and the history below, two plots on the
+ * same time axis: levels (input, output, ceiling; one dBFS scale) and gains (maximizer and
+ * clipper reductions, out - in; one dB scale).  Click a legend entry to show / hide its curve.
  * Knobs: drag vertically (Shift = fine), mouse wheel, double-click or Ctrl+click = default,
  * right-click = type a value (Enter / Escape).  Every control has a tooltip.
  * A / B: two sets of settings to compare (header: A | B, copy to the other); the inactive one is
@@ -41,7 +42,7 @@ START_NAMESPACE_DISTRHO
 using DGL_NAMESPACE::Color;
 
 static const float kW = 900.0f;
-static const float kH = 600.0f;
+static const float kH = 680.0f;
 static const float kPi = 3.14159265358979f;
 static const float kArcStart = 0.75f * kPi;
 static const float kArcSweep = 1.5f * kPi;
@@ -143,8 +144,9 @@ struct Rect {
 static const Rect kSecMax  = { 20, 70, 310, 380 };
 static const Rect kSecOut  = { 340, 70, 260, 380 };
 static const Rect kSecMon  = { 610, 70, 270, 380 };
-static const Rect kHistory = { 20, 460, 860, 128 };
-static const Rect kHistPlot = { 130, 468, 718, 112 };   // waveform / reduction area
+static const Rect kHistory = { 20, 460, 860, 208 };
+static const Rect kHistLevels = { 130, 468, 718, 92 };   // input and output peaks, dBFS
+static const Rect kHistGains  = { 130, 568, 718, 92 };   // reductions and out - in, dB
 
 enum { kKnobDecay = 0, kKnobKnee, kKnobDrive, kKnobMix, kKnobGain, kKnobCeiling, kKnobClipKnee, kNumKnobs };
 
@@ -199,7 +201,7 @@ struct MenuRow {
 };
 static const Rect kTheme   = { 684, 17, 76, 24 };
 static const Rect kBypass  = { 768, 14, 108, 30 };
-static const Rect kHistLengthBox = { 30, 571, 92, 14 };   // history length, under the legend
+static const Rect kHistLengthBox = { 30, 532, 92, 14 };   // history length, under the level legend
 
 static const float kMeterX[4] = { 642.0f, 700.0f, 758.0f, 816.0f };   // IN, GR, CLIP, OUT
 static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
@@ -208,7 +210,7 @@ static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
 enum {
     kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZoneDelta, kZonePreset,
     kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kZoneAB, kZoneCopy,
-    kZoneHistLength, kNumZones
+    kZoneHistLength, kZoneHistGains, kNumZones
 };
 
 struct Zone {
@@ -246,10 +248,8 @@ static const Zone kZones[kNumZones] = {
     { { kMeterX[2] - 6, kMeterY, kMeterW + 12, kMeterH + 40 }, "CLIP",
       "Gain reduction of the clipper, dB." },
     { { kMeterX[3] - 6, kMeterY, kMeterW + 12, kMeterH + 40 }, "OUT", "Output peak level, dBFS." },
-    { kHistPlot, "HISTORY",
-      "Input and output peak levels rise from the bottom (dBFS, right scale; dashed: ceiling). "
-      "Reductions of the maximizer and of the clipper hang from the top (dB, left scale). "
-      "out - in: total gain, output minus input peak (dB, centred scale inside on the right). "
+    { kHistLevels, "HISTORY: LEVELS",
+      "Input and output peak levels, dBFS, from 0 (top) to -48 (bottom); dashed: ceiling. "
       "Click a legend entry to show or hide its curve (saved with the project)." },
     { kTheme, "THEME",
       "EMBER: dark. ASH: light. Kept for all instances and projects (a setting of this computer, "
@@ -261,6 +261,10 @@ static const Zone kZones[kNumZones] = {
       "Copies the current settings into the other set (A > B or B > A)." },
     { kHistLengthBox, "HISTORY LENGTH",
       "Time shown by the history: 3, 7 or 30 seconds (saved with the project)." },
+    { kHistGains, "HISTORY: GAINS",
+      "One dB scale, 0 in the middle, +24 at the top, -24 at the bottom. Maximizer and clipper "
+      "reductions (below 0) and out - in, the total gain: output minus input peak. Same time axis "
+      "as the levels above." },
 };
 
 // history: one point every 25 ms, the longest length kept; the selector shows the last 3, 7 or 30 s
@@ -273,13 +277,14 @@ static const char* const kHistLengthNames[kHistLengthCount] = { "3 s", "7 s", "3
 static const char* const kSeriesNames[kNumSeries] = { "input", "output", "maximizer GR", "clipper GR",
                                                       "out - in" };
 static const float kNoValue = -1000.0f;            // gap in a series (difference on silence)
-static const float kHistDiffRange = 24.0f;        // dB: difference from -24 (bottom) to +24 (top)
-static const float kHistLevelRange = 36.0f;       // dB: levels from -36 (bottom) to 0 dBFS (top)
-static const float kHistReductionRange = 24.0f;   // dB: reductions from 0 (top) to -24 (bottom)
+static const float kHistLevelRange = 48.0f;   // levels plot: 0 dBFS (top) to -48 dBFS (bottom)
+static const float kHistGainRange = 24.0f;    // gains plot: +24 dB (top) to -24 dB (bottom)
 
 static Rect legendRect(const int s)
 {
-    return { kHistory.x + 10, kHistory.y + 26 + s * 17.0f, 104, 15 };
+    // input, output beside the levels plot; reductions and out - in beside the gains plot
+    const float y = s < kSeriesGR ? kHistLevels.y + 18 + s * 17.0f : kHistGains.y + 6 + (s - kSeriesGR) * 17.0f;
+    return { kHistory.x + 10, y, 104, 15 };
 }
 static const int kHoverZoneBase = 100;
 
@@ -1815,12 +1820,6 @@ private:
 
     void drawHistory()
     {
-        const Rect& r = kHistPlot;
-        beginPath();
-        rect(r.x, r.y, r.w, r.h);
-        fillColor(fT->plot);
-        fill();
-
         // legend: click to show / hide
         label(kHistory.x + 12, kHistory.y + 16, 10, fT->text, ALIGN_LEFT | ALIGN_MIDDLE, "HISTORY", 1);
         for (int s = 0; s < kNumSeries; ++s)
@@ -1838,32 +1837,53 @@ private:
         }
         segmented(kHistLengthBox, kHistLengthNames, kHistLengthCount, fHistLength, 8);
 
-        // levels rise from the bottom (0 dBFS at the top), reductions hang from the top
+        // levels plot: one dBFS scale, 0 at the top
+        const Rect& a = kHistLevels;
         const auto levelY = [&](const float v) {
             const float db = v > 1e-6f ? 20.0f * std::log10(v) : -120.0f;
-            return r.y + r.h * std::fmin(std::fmax(-db / kHistLevelRange, 0.0f), 1.0f);
+            return a.y + a.h * std::fmin(std::fmax(-db / kHistLevelRange, 0.0f), 1.0f);
         };
-        const auto reductionY = [&](const float db) {
-            return r.y + r.h * std::fmin(std::fmax(-db / kHistReductionRange, 0.0f), 1.0f);
-        };
-        const auto differenceY = [&](const float db) {
-            return r.y + r.h * 0.5f * (1.0f - std::fmin(std::fmax(db / kHistDiffRange, -1.0f), 1.0f));
+        // gains plot: one dB scale, 0 in the middle
+        const Rect& g = kHistGains;
+        const auto gainY = [&](const float db) {
+            return g.y + g.h * 0.5f * (1.0f - std::fmin(std::fmax(db / kHistGainRange, -1.0f), 1.0f));
         };
 
-        // grid (level scale), ceiling (dashed), scales: levels right, reductions left
+        for (const Rect* r : { &a, &g })
+        {
+            beginPath();
+            rect(r->x, r->y, r->w, r->h);
+            fillColor(fT->plot);
+            fill();
+        }
+
+        // grids every 12 dB; 0 dB of the gains plot dashed
         strokeWidth(1.0f);
         beginPath();
         for (float db = -12.0f; db > -kHistLevelRange; db -= 12.0f)
         {
-            moveTo(r.x, r.y + r.h * (-db / kHistLevelRange) + 0.5f);
-            lineTo(r.x + r.w, r.y + r.h * (-db / kHistLevelRange) + 0.5f);
+            moveTo(a.x, levelY(std::pow(10.0f, db / 20.0f)) + 0.5f);
+            lineTo(a.x + a.w, levelY(std::pow(10.0f, db / 20.0f)) + 0.5f);
+        }
+        for (float db = 12.0f; db > -kHistGainRange; db -= 24.0f)
+        {
+            moveTo(g.x, gainY(db) + 0.5f);
+            lineTo(g.x + g.w, gainY(db) + 0.5f);
         }
         strokeColor(fT->histGrid);
         stroke();
-
-        const float ceilY = r.y + r.h * std::fmin(-fValues[kParamCeiling] / kHistLevelRange, 1.0f);
         beginPath();
-        for (float xx = r.x; xx < r.x + r.w; xx += 8.0f)
+        for (float xx = g.x; xx < g.x + g.w; xx += 6.0f)
+        {
+            moveTo(xx, gainY(0.0f) + 0.5f);
+            lineTo(xx + 2.0f, gainY(0.0f) + 0.5f);
+        }
+        strokeColor(Color(fT->faint, fT->plot, 0.3f));
+        stroke();
+
+        const float ceilY = a.y + a.h * std::fmin(-fValues[kParamCeiling] / kHistLevelRange, 1.0f);
+        beginPath();
+        for (float xx = a.x; xx < a.x + a.w; xx += 8.0f)
         {
             moveTo(xx, ceilY + 0.5f);
             lineTo(xx + 4.0f, ceilY + 0.5f);
@@ -1871,55 +1891,38 @@ private:
         strokeColor(fT->histCeil);
         stroke();
 
+        // scales on the right
         for (float db = 0.0f; db >= -kHistLevelRange + 1.0f; db -= 12.0f)
         {
             char b[8];
             std::snprintf(b, sizeof(b), "%.0f", db);
-            label(r.x + r.w + 4, r.y + r.h * (-db / kHistLevelRange), 8, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, b);
+            label(a.x + a.w + 4, a.y + a.h * (-db / kHistLevelRange), 8, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, b);
         }
-        label(r.x + r.w + 4, r.y + r.h - 4, 7, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "dBFS");
-        for (float db = -6.0f; db >= -kHistReductionRange + 1.0f; db -= 6.0f)
+        label(a.x + a.w + 4, a.y + a.h - 4, 7, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "dBFS");
+        for (float db = 24.0f; db >= -kHistGainRange + 1.0f; db -= 12.0f)
         {
             char b[8];
-            std::snprintf(b, sizeof(b), "%.0f", db);
-            label(r.x - 4, r.y + r.h * (-db / kHistReductionRange), 8, Color(fT->hot, fT->faint, 0.5f),
-                  ALIGN_RIGHT | ALIGN_MIDDLE, b);
+            std::snprintf(b, sizeof(b), "%+.0f", db);
+            label(g.x + g.w + 4, gainY(db), 8, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, db == 0.0f ? "0" : b);
         }
+        label(g.x + g.w + 4, g.y + g.h - 4, 7, fT->faint, ALIGN_LEFT | ALIGN_MIDDLE, "dB");
 
-        // difference: centred scale (0 dB in the middle), inside the plot on the right
-        if (fShow[kSeriesDiff])
-        {
-            const Color dc = Color(seriesColor(kSeriesDiff), fT->faint, 0.4f);
-            beginPath();
-            for (float xx = r.x; xx < r.x + r.w; xx += 6.0f)
-            {
-                moveTo(xx, differenceY(0.0f) + 0.5f);
-                lineTo(xx + 2.0f, differenceY(0.0f) + 0.5f);
-            }
-            strokeWidth(1.0f);
-            strokeColor(Color(dc, Color(0, 0, 0, 0.0f), 0.5f));
-            stroke();
-            for (float db = 12.0f; db >= -12.0f; db -= 12.0f)
-            {
-                char b[8];
-                std::snprintf(b, sizeof(b), "%+.0f", db);
-                label(r.x + r.w - 4, differenceY(db), 8, dc, ALIGN_RIGHT | ALIGN_MIDDLE, db == 0.0f ? "0" : b);
-            }
-        }
-
-        const float dx = r.w / (historyPoints() - 1);
+        const float dx = a.w / (historyPoints() - 1);
         save();
-        scissor(r.x, r.y - 1, r.w, r.h + 2);
+        scissor(a.x, a.y - 1, a.w, a.h + 2);
         if (fShow[kSeriesIn])
-            historyLine(kSeriesIn, r.x, dx, levelY, 0.9f);
+            historyLine(kSeriesIn, a.x, dx, levelY, 0.9f);
         if (fShow[kSeriesOut])
-            historyLine(kSeriesOut, r.x, dx, levelY, 1.0f);
+            historyLine(kSeriesOut, a.x, dx, levelY, 1.0f);
+        restore();
+        save();
+        scissor(g.x, g.y - 1, g.w, g.h + 2);
         if (fShow[kSeriesGR])
-            historyLine(kSeriesGR, r.x, dx, reductionY, 1.0f);
+            historyLine(kSeriesGR, g.x, dx, gainY, 1.0f);
         if (fShow[kSeriesClip])
-            historyLine(kSeriesClip, r.x, dx, reductionY, 1.0f);
+            historyLine(kSeriesClip, g.x, dx, gainY, 1.0f);
         if (fShow[kSeriesDiff])
-            historyLine(kSeriesDiff, r.x, dx, differenceY, 1.0f);
+            historyLine(kSeriesDiff, g.x, dx, gainY, 1.0f);
         restore();
     }
 
