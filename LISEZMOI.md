@@ -203,7 +203,9 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
 Améliorations : voir `AMELIORATIONS.md`.
 
 ## Pour reprendre
-- Dépôt git dans ce dossier (créé en session 64) ; `dpf/`, `build*/`, `bin/` non suivis (`dpf/`
+- Dépôt git dans ce dossier (créé en session 64), distant `origin` =
+  `git@github.com:tterraz/brimstone_maximizer.git` (ajouté par l'utilisateur le 2026-11-25,
+  `master` poussé et suivi ; push sur demande, auteur et committer Claude) ; `dpf/`, `build*/`, `bin/` non suivis (`dpf/`
   est un clone de DPF portant le correctif de `patches/`, refait par `build.sh`).
 - `./build.sh` refait tout (tests, Windows, Linux, installateur si `makensis`).
 - Validateur de Steinberg : `tools/validate_vst3.sh DOSSIER [windows]` (clone le SDK dans DOSSIER ;
