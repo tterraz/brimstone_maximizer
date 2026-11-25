@@ -33,7 +33,7 @@
 
 \title{\textcolor{ember}{\textbf{BRIMSTONE}} \textsf{MAXIMIZER}\\[4pt]
 \large Manuel d'utilisation et description de l'algorithme}
-\author{Version 1.1.0 et ajouts du 25 novembre 2026}
+\author{Version 1.1.0}
 \date{}
 
 \begin{document}
@@ -403,8 +403,8 @@ t + (C - t)\tanh\dfrac{|y| - t}{C - t} & \text{sinon}
 La courbe Soft est continue et de pente continue en $t$ (pente 1), et tend vers $C$ sans
 l'atteindre (figure~\ref{fig:ecreteur}). Une crête poussée exactement au plafond par le
 maximiseur ressort à $t + (C-t)\tanh 1$ : $-0{,}23$\dB{} sous le plafond pour un Soft knee de
-1\dB, $-0{,}45$\dB{} pour 2\dB, $-0{,}87$\dB{} pour 4,44\dB{} (la valeur fixe de la 1.1.0,
-60\,\% du plafond). Un petit Soft knee rapproche du Hard et garde le niveau ; un grand arrondit
+1\dB, $-0{,}45$\dB{} pour 2\dB, $-0{,}87$\dB{} pour 4,44\dB{} (60\,\% du plafond, le
+réglage de Wide crush). Un petit Soft knee rapproche du Hard et garde le niveau ; un grand arrondit
 davantage et sonne plus doux.
 
 \begin{figure}[htbp]
@@ -443,9 +443,9 @@ que ce que la distorsion crée au-dessus de la fréquence de Nyquist ne revient 
 dans l'audible. Mesuré sur le greffon (Mix 0, Clip Off, montée et descente) : $-0{,}006$\dB{} à
 20\,kHz, $-1{,}3$\dB{} à 21\,kHz. À 48\,kHz, ces fréquences montent d'environ 9\,\%.
 
-Jusqu'au 25 novembre 2026, le premier étage n'avait que 47 coefficients : transition de 17,6 à
-27\,kHz, aigu atténué de 0,57\dB{} à 19\,kHz et 2,0\dB{} à 20\,kHz, et rejet de 19\dB{} seulement
-à 24,1\,kHz (courbe en tirets). Les 107 coefficients coûtent 30 échantillons de latence (0,7\,ms
+Pour comparaison, un filtre de 47 coefficients (courbe en tirets, celui du second étage)
+laisserait une transition de 17,6 à 27\,kHz : aigu atténué de 2,0\dB{} à 20\,kHz et rejet de
+19\dB{} seulement à 24,1\,kHz. Les 107 coefficients coûtent 30 échantillons de latence (0,7\,ms
 à 44,1\,kHz) et environ 45\,\% de calcul en plus en 2x, 25\,\% en 4x.
 
 \subsection{Latence}
@@ -601,9 +601,6 @@ sous-échantillonnage pendant qu'il est actif.
   \texttt{match}, \texttt{clip\_knee}), nombres avec un point décimal quelle que soit la langue du
   système. Une clé absente prend sa valeur par défaut, une valeur hors bornes est ramenée dans les
   bornes, une ligne inconnue est ignorée. Copier le fichier suffit à partager un préréglage.
-\item[Projets de la 1.1.0.] Ils se rouvrent avec leurs réglages ; Soft knee n'existait pas : un
-  projet en Soft prend 1\dB{} au lieu des 4,44\dB{} fixes de la 1.1.0 (crêtes environ 0,6\dB{}
-  plus hautes). La sonie affichée et la compensation de Level match suivent désormais BS.1770.
 \end{description}
 
 % ==============================================================================================

@@ -38,7 +38,7 @@ entrée → suréchantillonnage → Drive → cœur → × Ceiling, mélange ave
 | Drive | 0..24 dB, gain d'entrée du seul signal traité |
 | Ceiling | -12..0 dB, niveau de sortie maximal |
 | Clip | Off (original : la sortie peut dépasser le plafond, jusqu'à +7 dB pour un Decay de 3 échantillons, +4,4 dB pour 30 ; manuel § 7.2), Hard, Soft (linéaire jusqu'au soft knee puis épaule en tanh jusqu'au plafond) |
-| Soft knee | 0,1-6 dB sous le plafond : début de l'arrondi en Soft (petit bouton à droite de Clip, grisé hors Soft). Crête poussée au plafond par le maximiseur : -0,23 dB à 1 dB, -0,45 dB à 2 dB, -0,87 dB à 4,44 dB (60 % du plafond, la valeur fixe de la 1.1.0). Préréglages : 1 dB (Default, Loud master), 2 dB (Subtle), 4,44 dB (Wide crush, caractère gardé) ; sans effet dans les autres (Off ou Hard) |
+| Soft knee | 0,1-6 dB sous le plafond : début de l'arrondi en Soft (petit bouton à droite de Clip, grisé hors Soft). Crête poussée au plafond par le maximiseur : -0,23 dB à 1 dB, -0,45 dB à 2 dB, -0,87 dB à 4,44 dB (60 % du plafond, la valeur fixe d'avant le 2026-11-25). Préréglages : 1 dB (Default, Loud master), 2 dB (Subtle), 4,44 dB (Wide crush, caractère gardé) ; sans effet dans les autres (Off ou Hard) |
 | Stereo | Link (détecteur commun), L/R (chaque canal : l'original), M/S |
 | Mix | sec/traité ; à 0 % le maximiseur est hors circuit (écrêteur pur) |
 | Gain | -24..+12 dB après le mélange, avant l'écrêtage : pousse les crêtes au-dessus du plafond (s'appelait Output) |
@@ -222,7 +222,7 @@ Améliorations : voir `AMELIORATIONS.md`.
 - Reste : essais dans un vrai hôte (clics et saisie au clavier : liste des préréglages,
   enregistrement d'un nom, A/B, durée de l'historique, pastille de thème ; rechargement d'un
   projet avec ses états A/B et historique) ; validateur VST3 Windows à relancer ; correctif à
-  proposer à DPF ; version encore 1.1.0 (deux paramètres et deux états ajoutés : passage en
-  1.2.0 à décider).
-- Compatibilité avec la 1.1.0 : réglages des projets relus par symbole ; un projet 1.1.0 en Soft
-  reprend le soft knee par défaut (1 dB) au lieu de 4,44 dB (crêtes ~0,6 dB plus hautes).
+  proposer à DPF.
+- Version : reste 1.1.0 malgré les ajouts du 2026-11-25 (décision de l'utilisateur : le
+  logiciel n'a jamais été utilisé, aucun projet à préserver). Les réglages des projets sont
+  relus par symbole : ajouter un paramètre plus tard ne casse pas un projet.

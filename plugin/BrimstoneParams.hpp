@@ -58,7 +58,7 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
     { -24.0f,  12.0f,   0.0f },   // output
     {   0.0f,   2.0f,   0.0f },   // oversampling
     {   0.0f,   1.0f,   0.0f },   // match
-    {   0.1f,   6.0f,   1.0f },   // clip knee, dB below the ceiling (1.1.0: 4.44 dB = 60 %)
+    {   0.1f,   6.0f,   1.0f },   // clip knee, dB below the ceiling (4.44 dB = 60 %)
     {   0.0f,   1.0f,   0.0f },   // bypass
     {   0.0f,   1.0f,   0.0f },   // delta
     { -60.0f,   6.0f, -60.0f },   // meter in
@@ -76,7 +76,7 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
 // ------------------------------------------------------------------------------------------------
 // Factory presets: values of the input parameters kParamDecay .. kParamClipKnee (bypass and
 // delta, monitoring switches, excluded).  Clip knee: 1 dB costs 0.23 dB on peaks pushed to the
-// ceiling, 2 dB 0.45 dB, 4.44 dB (the fixed 60 % of 1.1.0) 0.87 dB.
+// ceiling, 2 dB 0.45 dB, 4.44 dB (60 % of the ceiling) 0.87 dB.
 
 static const int kPresetParamCount = kParamBypass;
 

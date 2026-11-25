@@ -63,7 +63,7 @@ B. **Écoute de la différence** (« Delta ») : bouton qui fait entendre sortie
    la latence), ce que le maximiseur et l'écrêteur retirent ; courant sur ce type de plugin, peu
    de code (l'entrée retardée existe déjà pour Bypass).
    **Fait** (2026-11-25) : paramètre `delta` (après Bypass : seuls les indices des sorties
-   changent, l'automation des projets 1.1.0 reste en place ; l'état est enregistré par symbole).
+   changent ; l'état est enregistré par symbole).
    Sortie moins la chaîne linéaire (gain du maximiseur tenu à 1/knee, sans écrêtage), celle-ci
    sous-échantillonnée par son propre filtre : un premier essai avec l'entrée retardée à la
    fréquence de l'hôte laissait en 4x la coupure des filtres (0,33 de crête sur du bruit blanc).
@@ -77,7 +77,7 @@ C. **Douceur de l'écrêteur Soft réglable** (corrige le défaut connu de `LISE
    Valeurs choisies (laissées à mon choix) : Default et Loud master 1 dB (-0,23 dB sur les
    crêtes au plafond au lieu de -0,87), Subtle 2 dB (plus doux, -0,45 dB), Wide crush 4,44 dB
    (son de la 1.1.0 gardé), autres 1 dB (sans effet : Off ou Hard). Défaut du paramètre : 1 dB.
-   Projets 1.1.0 en Soft : 1 dB au lieu de 4,44 dB (le symbole manque dans leur état). Test 11.
+   Test 11.
 D. **Sonie selon ITU-R BS.1770** (pondération K) pour Level match et l'écart affiché, au lieu du
    RMS large bande : la comparaison suit mieux l'oreille (le RMS surestime les graves). Affichage
    possible en LU. Change les valeurs affichées et la compensation (décision).
@@ -128,6 +128,8 @@ K. **Filtre de suréchantillonnage allongé** (demandé le 2026-11-25, après le
    (machine peu chargée) : 2x 113 → 164 ns par trame (+45 %), 4x 224 → 281 ns (+25 %), soit
    0,5 → 0,7 % et 1,0 → 1,2 % d'un cœur à 44,1 kHz ; 1x +4 à 8 % (~2 ns, les filtres n'y servent
    pas : disposition du code). Test 4 de `test_dsp` : réponse à 18, 19, 20 kHz en 2x et 4x.
+
+Version : reste 1.1.0 (décision du 2026-11-25 : le logiciel n'a jamais été utilisé).
 
 ## Écarté
 - **Mode limiteur** (relâchement long séparé de l'anticipation, attaque lissée, détection des crêtes

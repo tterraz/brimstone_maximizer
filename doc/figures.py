@@ -196,7 +196,7 @@ def fig_halfband():
         resp[taps] = np.abs(np.exp(-2j * np.pi * np.outer(f, np.arange(len(h)))) @ h)
     ax.plot(k, db(resp[107]), color=ORANGE, label="107 coefficients : un filtre")
     ax.plot(k, db(resp[107] ** 2), color=BLUE, lw=0.9, label="107 coefficients : montée + descente")
-    ax.plot(k, db(resp[47] ** 2), color=GREY, lw=0.8, ls="--", label="47 coefficients (avant) : montée + descente")
+    ax.plot(k, db(resp[47] ** 2), color=GREY, lw=0.8, ls="--", label="47 coefficients (pour comparaison) : montée + descente")
     ax.axvline(fhost / 2, color=GREY, ls=":", lw=0.8)
     ax.axvline(20.0, color=GREEN, ls="--", lw=0.8)
     ax.text(fhost / 2 + 7.0, -15, "Nyquist de l'hôte\n22,05 kHz", fontsize=7)
