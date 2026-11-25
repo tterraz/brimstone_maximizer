@@ -221,7 +221,8 @@ static const Zone kZones[kNumZones] = {
     { kOvers, "OVERSAMPLING",
       "Runs the processing at 2x or 4x the sample rate: less aliasing, more latency and CPU." },
     { kMatch, "LEVEL MATCH",
-      "Lowers the output by the loudness gained, to compare with Bypass at equal level." },
+      "Lowers the output by the loudness gained (ITU-R BS.1770, K-weighted, ~1.5 s; shown below "
+      "in LU), to compare with Bypass at equal loudness." },
     { kDelta, "DELTA",
       "Listen to what the maximizer and the clipper change: the output minus the same chain "
       "without reduction nor clipping (makeup gain removed). Bypass has priority." },
@@ -1313,7 +1314,7 @@ private:
         label(kDelta.x + kDelta.w * 0.5f + 8, kDelta.y + kDelta.h * 0.5f, 10, delta ? fT->onAccent : fT->dim,
               ALIGN_CENTER | ALIGN_MIDDLE, "DELTA", 1);
         char loud[48];
-        std::snprintf(loud, sizeof(loud), "loudness: %+.1f dB louder", fValues[kParamMeterLoud]);
+        std::snprintf(loud, sizeof(loud), "loudness (BS.1770): %+.1f LU", fValues[kParamMeterLoud]);
         label(kSecMon.x + 12, 394, 10, fT->gold, ALIGN_LEFT | ALIGN_MIDDLE, loud);
 
         char lat[64];

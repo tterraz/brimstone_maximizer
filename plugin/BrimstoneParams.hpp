@@ -28,7 +28,7 @@ enum BrimstoneParam {
     kParamMeterIn,     // input peak, dBFS
     kParamMeterGR,     // gain reduction below makeup, dB
     kParamMeterOut,    // output peak, dBFS
-    kParamMeterLoud,   // output minus input loudness (RMS, ~1.5 s), dB
+    kParamMeterLoud,   // output minus input loudness (BS.1770 K-weighted, ~1.5 s), LU
     kParamLatency,     // current latency, samples
     kParamMeterClip,   // reduction by the clipper, dB (~100 ms release)
     kParamHistIn,      // history: input peak over the last ~30 ms, linear

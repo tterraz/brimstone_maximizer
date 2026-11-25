@@ -39,7 +39,7 @@ entrée → suréchantillonnage → Drive → cœur → × Ceiling, mélange ave
 | Mix | sec/traité ; à 0 % le maximiseur est hors circuit (écrêteur pur) |
 | Gain | -24..+12 dB après le mélange, avant l'écrêtage : pousse les crêtes au-dessus du plafond (s'appelait Output) |
 | Oversampling | 1x, 2x, 4x (demi-bandes FIR 47 coefficients, ~80 dB de réjection) |
-| Level match | compense le gain de sonie (RMS ~1,5 s) pour comparer avec Bypass à niveau égal ; l'écart est affiché (« LOUDER ») |
+| Level match | compense le gain de sonie pour comparer avec Bypass à sonie égale ; sonie selon ITU-R BS.1770 (pondération K : plateau de +4 dB au-dessus de ~1,7 kHz et passe-haut RLB à ~38 Hz ; moyenne quadratique sur ~1,5 s, sans fenêtrage) ; l'écart est affiché en LU (« loudness (BS.1770) ») |
 | Delta | fait entendre ce que le maximiseur et l'écrêteur changent : sortie moins la même chaîne sans réduction ni écrêtage (gain du maximiseur tenu à 1/knee, mêmes filtres de suréchantillonnage, donc sans le gain de compensation) ; sans Level match ; fondu de 10 ms ; Bypass prioritaire ; non enregistré dans les préréglages |
 | Bypass | paramètre Bypass déclaré à l'hôte ; entrée retardée de la latence, fondu de 10 ms |
 
@@ -146,9 +146,10 @@ dans `C:\Program Files\Common Files\VST3\`, `brimstone_maximizer.clap` dans `...
 resynchronisé après rechargement d'un préréglage). Correctif à proposer à DPF.
 
 ## Vérifications
-- `tests/test_dsp.cpp` (37 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
+- `tests/test_dsp.cpp` (40 cas, dont l'état du FPU rétabli après `run` et Delta : nul sur une
   chaîne linéaire en 1x et 4x, égal à ce que retire l'écrêteur avec Clipper, Bypass prioritaire ;
-  soft knee : sortie exacte en 1x de 0,1 à 6 dB) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
+  soft knee : sortie exacte en 1x de 0,1 à 6 dB ; sonie : coefficients de la pondération K à
+  48 kHz égaux à ceux de la norme à 1e-15, gain pur de +6 dB lu +6,0 LU) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
   écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
 - Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par

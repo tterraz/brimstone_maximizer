@@ -255,6 +255,57 @@ static inline void follow(float& env, const float a, const float envTr)
         env = a * envTr + env * (1.0f - envTr);
 }
 
+// K-weighting of ITU-R BS.1770 (loudness): high shelf (+4 dB above ~1.7 kHz, head) then the
+// RLB high-pass (~38 Hz); coefficients for any sample rate (formulas of libebur128), double
+// precision.  Gives the coefficients of the standard at 48 kHz (tests/test_dsp.cpp).
+struct KWeighting
+{
+    double b[2][3], a[2][3];   // stage, coefficient (a[s][0] = 1)
+    double z[2][2];            // transposed direct form II states
+
+    void setup(const double sr)
+    {
+        const double pi = 3.14159265358979323846;
+        {
+            const double f0 = 1681.974450955533, g = 3.999843853973347, q = 0.7071752369554196;
+            const double k = std::tan(pi * f0 / sr);
+            const double vh = std::pow(10.0, g / 20.0), vb = std::pow(vh, 0.4996667741545416);
+            const double a0 = 1.0 + k / q + k * k;
+            b[0][0] = (vh + vb * k / q + k * k) / a0;
+            b[0][1] = 2.0 * (k * k - vh) / a0;
+            b[0][2] = (vh - vb * k / q + k * k) / a0;
+            a[0][1] = 2.0 * (k * k - 1.0) / a0;
+            a[0][2] = (1.0 - k / q + k * k) / a0;
+        }
+        {
+            const double f0 = 38.13547087602444, q = 0.5003270373238773;
+            const double k = std::tan(pi * f0 / sr);
+            const double a0 = 1.0 + k / q + k * k;
+            b[1][0] = 1.0;
+            b[1][1] = -2.0;
+            b[1][2] = 1.0;
+            a[1][1] = 2.0 * (k * k - 1.0) / a0;
+            a[1][2] = (1.0 - k / q + k * k) / a0;
+        }
+        a[0][0] = a[1][0] = 1.0;
+        reset();
+    }
+
+    void reset() { z[0][0] = z[0][1] = z[1][0] = z[1][1] = 0.0; }
+
+    double process(double x)
+    {
+        for (int s = 0; s < 2; ++s)
+        {
+            const double y = b[s][0] * x + z[s][0];
+            z[s][0] = b[s][1] * x - a[s][1] * y + z[s][1];
+            z[s][1] = b[s][2] * x - a[s][2] * y;
+            x = y;
+        }
+        return x;
+    }
+};
+
 // Peak (or minimum) of the last ~30 ms, whatever the block size: 8 bins of 5 ms, the current one
 // and the 6 previous ones are read.  The UI samples it every 25 ms without missing a peak.
 struct RecentPeak
@@ -406,7 +457,7 @@ protected:
         case kParamMeterIn:   output(p, "Input level", "meter_in", "dB"); break;
         case kParamMeterGR:   output(p, "Gain reduction", "meter_gr", "dB"); break;
         case kParamMeterOut:  output(p, "Output level", "meter_out", "dB"); break;
-        case kParamMeterLoud: output(p, "Loudness change", "meter_loud", "dB"); break;
+        case kParamMeterLoud: output(p, "Loudness change", "meter_loud", "LU"); break;
         case kParamLatency:   output(p, "Latency", "latency", "smp"); break;
         case kParamMeterClip: output(p, "Clipper reduction", "meter_clip", "dB"); break;
         case kParamHistIn:    output(p, "History input", "hist_in", ""); break;
@@ -614,8 +665,13 @@ protected:
                 }
             }
 
-            sumIn += static_cast<double>(x[0]) * x[0] + static_cast<double>(x[1]) * x[1];
-            sumOut += static_cast<double>(p[0]) * p[0] + static_cast<double>(p[1]) * p[1];
+            // loudness: K-weighted powers (BS.1770, channel weights 1)
+            for (int c = 0; c < 2; ++c)
+            {
+                const double ki = fKIn[c].process(x[c]), ko = fKOut[c].process(p[c]);
+                sumIn += ki * ki;
+                sumOut += ko * ko;
+            }
 
             // input delayed by the latency (bypass, delta)
             const unsigned bw = fBasePos;
@@ -686,7 +742,7 @@ protected:
         fRecentGR.add(minRel, frames, bin);
         fRecentClip.add(minClip, frames, bin);
 
-        // loudness (RMS over ~1.5 s) for the level match
+        // loudness (K-weighted mean square over ~1.5 s, BS.1770) for the level match
         if (frames > 0)
         {
             const double e = std::exp(-static_cast<double>(frames) / (1.5 * sr));
@@ -858,6 +914,11 @@ private:
         fRecentGR.reset(1.0f, true);
         fRecentClip.reset(1.0f, true);
         fPowIn = fPowOut = 0.0;
+        for (int c = 0; c < 2; ++c)
+        {
+            fKIn[c].setup(sr);
+            fKOut[c].setup(sr);
+        }
         fComp = fCompTarget = 1.0f;
     }
 
@@ -880,6 +941,7 @@ private:
     float fMeterIn = 0.0f, fMeterOut = 0.0f, fMeterRel = 1.0f, fMeterClip = 1.0f;
     RecentPeak fRecentIn, fRecentOut, fRecentGR, fRecentClip;
     double fPowIn = 0.0, fPowOut = 0.0;
+    KWeighting fKIn[2], fKOut[2];
     float fComp = 1.0f, fCompTarget = 1.0f;
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BrimstonePlugin)

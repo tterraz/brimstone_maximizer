@@ -81,6 +81,10 @@ C. **Douceur de l'écrêteur Soft réglable** (corrige le défaut connu de `LISE
 D. **Sonie selon ITU-R BS.1770** (pondération K) pour Level match et l'écart affiché, au lieu du
    RMS large bande : la comparaison suit mieux l'oreille (le RMS surestime les graves). Affichage
    possible en LU. Change les valeurs affichées et la compensation (décision).
+   **Fait** (2026-11-25, accepté par l'utilisateur) : pondération K (deux biquads en double par
+   canal, entrée et sortie, coefficients pour toute fréquence d'échantillonnage d'après les
+   formules de libebur128), même moyenne exponentielle de ~1,5 s, sans fenêtrage ; affichage en LU.
+   Réponse : 50 Hz -3,9 dB, 1 kHz +0,7 dB, 10 kHz +4,0 dB. Test 12.
 (E, pistes mono : retirée par l'utilisateur, ne pas la reproposer.)
 F. **Comparaison A/B** dans l'interface : deux jeux de réglages, bascule et copie A→B ; avec Level
    match, permet de comparer deux réglages à niveau égal.

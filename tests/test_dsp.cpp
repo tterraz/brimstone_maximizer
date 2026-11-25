@@ -16,6 +16,8 @@
  * 10. Delta: zero when nothing is clipped nor reduced; with the Clipper preset, exactly what the
  *     clipper removes; Bypass has priority.
  * 11. Soft clip knee: at 1x with Mix 0, output == soft clip of (input x gain) from the knee.
+ * 12. Loudness: K-weighting coefficients of BS.1770 at 48 kHz; a pure gain of +6 dB reads
+ *     +6.0 LU; a 50 Hz tone counts less than with a flat measure (RLB high-pass).
  * 9. Denormals: FTZ / DAZ are switched on in run() only, the FPU state of the caller is
  *    restored (the gain in silence is measured by tests/bench_cpu.cpp).
  */
@@ -451,6 +453,65 @@ int main()
                           kneeDb, err, 20.0f * log10f(peak));
             check(err < 1e-6f && peak <= c, buf);
         }
+    }
+
+    // 12. loudness (BS.1770) ------------------------------------------------------------------
+    std::printf("12. loudness (BS.1770 K-weighting)\n");
+    {
+        KWeighting k;
+        k.setup(48000.0);
+        // ITU-R BS.1770-4, tables 1 and 2 (48 kHz)
+        const double ref[2][5] = { { 1.53512485958697, -2.69169618940638, 1.19839281085285,
+                                     -1.69065929318241, 0.73248077421585 },
+                                   { 1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621 } };
+        double err = 0.0;
+        for (int st = 0; st < 2; ++st)
+        {
+            err = std::max(err, std::fabs(k.b[st][0] - ref[st][0]));
+            err = std::max(err, std::fabs(k.b[st][1] - ref[st][1]));
+            err = std::max(err, std::fabs(k.b[st][2] - ref[st][2]));
+            err = std::max(err, std::fabs(k.a[st][1] - ref[st][3]));
+            err = std::max(err, std::fabs(k.a[st][2] - ref[st][4]));
+        }
+        char buf[128];
+        std::snprintf(buf, sizeof(buf), "coefficients at 48 kHz: max difference with the standard %.1e", err);
+        check(err < 1e-8, buf);
+
+        // response: 1 kHz ~ +0.7 dB, 50 Hz attenuated by the RLB high-pass
+        const auto gainAt = [&](double f) {
+            KWeighting kw;
+            kw.setup(48000.0);
+            double pin = 0.0, pout = 0.0;
+            for (int n = 0; n < 96000; ++n)
+            {
+                const double x = std::sin(2.0 * 3.14159265358979323846 * f * n / 48000.0);
+                const double y = kw.process(x);
+                if (n >= 48000)
+                {
+                    pin += x * x;
+                    pout += y * y;
+                }
+            }
+            return 10.0 * std::log10(pout / pin);
+        };
+        const double g1k = gainAt(997.0), g50 = gainAt(50.0), g10k = gainAt(10000.0);
+        std::snprintf(buf, sizeof(buf), "response: 50 Hz %+.2f dB, 997 Hz %+.2f dB, 10 kHz %+.2f dB", g50, g1k, g10k);
+        check(std::fabs(g1k - 0.69) < 0.05 && g50 < -1.0 && std::fabs(g10k - 4.0) < 0.3, buf);
+
+        // a pure gain reads as itself
+        Settings s;
+        for (int i = 0; i < kPresetParamCount; ++i)
+            s.values[i] = kBrimstonePresets[0].values[i];
+        s.values[kParamMix] = 0.0f;
+        s.values[kParamClip] = kClipOff;
+        s.values[kParamGain] = 6.0f;
+        std::vector<float> Q(N);
+        for (size_t i = 0; i < N; ++i)
+            Q[i] = 0.1f * sinf(0.02f * i) + 0.05f * sinf(0.3f * i);
+        float m[kParamCount];
+        process(s, Q, Q, oL, oR, nullptr, m);
+        std::snprintf(buf, sizeof(buf), "mix 0, gain +6 dB, clip off: loudness change %+.2f LU", m[kParamMeterLoud]);
+        check(std::fabs(m[kParamMeterLoud] - 6.02f) < 0.05f, buf);
     }
 
     std::printf("%s\n", gFailures ? "FAILED" : "all tests passed");
