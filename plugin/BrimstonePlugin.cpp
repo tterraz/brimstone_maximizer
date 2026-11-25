@@ -314,48 +314,41 @@ struct KWeighting
     }
 };
 
-// Peak (or minimum) of the last ~30 ms, whatever the block size: 8 bins of 5 ms, the current one
+// Peak of the last ~30 ms, whatever the block size: 8 bins of 5 ms, the current one
 // and the 6 previous ones are read.  The UI samples it every 25 ms without missing a peak.
 struct RecentPeak
 {
     static const int kBins = 8;
     static const int kRead = 7;
     float bins[kBins];
-    float neutral = 0.0f;
-    bool isMin = false;
     int cur = 0;
     unsigned filled = 0;
 
-    void reset(const float n, const bool minimum)
+    void reset()
     {
-        neutral = n;
-        isMin = minimum;
         for (int i = 0; i < kBins; ++i)
-            bins[i] = n;
+            bins[i] = 0.0f;
         cur = 0;
         filled = 0;
     }
 
     void add(const float v, const unsigned frames, const unsigned binLength)
     {
-        bins[cur] = isMin ? std::fmin(bins[cur], v) : std::fmax(bins[cur], v);
+        bins[cur] = std::fmax(bins[cur], v);
         filled += frames;
         if (filled >= binLength)
         {
             cur = (cur + 1) % kBins;
-            bins[cur] = neutral;
+            bins[cur] = 0.0f;
             filled = 0;
         }
     }
 
     float value() const
     {
-        float v = neutral;
+        float v = 0.0f;
         for (int i = 0; i < kRead; ++i)
-        {
-            const float b = bins[(cur - i + kBins) % kBins];
-            v = isMin ? std::fmin(v, b) : std::fmax(v, b);
-        }
+            v = std::fmax(v, bins[(cur - i + kBins) % kBins]);
         return v;
     }
 };
@@ -470,8 +463,6 @@ protected:
         case kParamMeterClip: output(p, "Clipper reduction", "meter_clip", "dB"); break;
         case kParamHistIn:    output(p, "History input", "hist_in", ""); break;
         case kParamHistOut:   output(p, "History output", "hist_out", ""); break;
-        case kParamHistGR:    output(p, "History reduction", "hist_gr", "dB"); break;
-        case kParamHistClip:  output(p, "History clipper", "hist_clip", "dB"); break;
         }
     }
 
@@ -773,8 +764,6 @@ protected:
         const unsigned bin = static_cast<unsigned>(0.005f * sr) + 1;
         fRecentIn.add(peakIn, frames, bin);
         fRecentOut.add(peakOut, frames, bin);
-        fRecentGR.add(minRel, frames, bin);
-        fRecentClip.add(minClip, frames, bin);
 
         // loudness (K-weighted mean square over ~1.5 s, BS.1770) for the level match
         if (frames > 0)
@@ -799,8 +788,6 @@ protected:
         fParams[kParamMeterClip] = gainToDb(fMeterClip, -40.0f);
         fParams[kParamHistIn] = std::fmin(fRecentIn.value(), 2.0f);
         fParams[kParamHistOut] = std::fmin(fRecentOut.value(), 2.0f);
-        fParams[kParamHistGR] = gainToDb(fRecentGR.value(), -40.0f);
-        fParams[kParamHistClip] = gainToDb(fRecentClip.value(), -40.0f);
     }
 
 private:
@@ -943,10 +930,8 @@ private:
         fSmoothBase = static_cast<float>(1.0 - std::exp(-1.0 / (0.01 * sr)));
         fMeterIn = fMeterOut = 0.0f;
         fMeterRel = fMeterClip = 1.0f;
-        fRecentIn.reset(0.0f, false);
-        fRecentOut.reset(0.0f, false);
-        fRecentGR.reset(1.0f, true);
-        fRecentClip.reset(1.0f, true);
+        fRecentIn.reset();
+        fRecentOut.reset();
         fPowIn = fPowOut = 0.0;
         for (int c = 0; c < 2; ++c)
         {
@@ -974,7 +959,7 @@ private:
     float fBypass = 0.0f, fDelta = 0.0f;
     float fSmoothInt = 0.0f, fSmoothBase = 0.0f;
     float fMeterIn = 0.0f, fMeterOut = 0.0f, fMeterRel = 1.0f, fMeterClip = 1.0f;
-    RecentPeak fRecentIn, fRecentOut, fRecentGR, fRecentClip;
+    RecentPeak fRecentIn, fRecentOut;
     double fPowIn = 0.0, fPowOut = 0.0;
     KWeighting fKIn[2], fKOut[2];
     float fComp = 1.0f, fCompTarget = 1.0f;

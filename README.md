@@ -26,7 +26,7 @@ dry/wet mix, stereo modes, delta listening, loudness-matched comparison and pres
 - **Presets**: 7 factory presets, and your own presets (save, replace, delete) shared by all
   projects and hosts.
 - **Meters**: input, maximizer and clipper gain reduction, output; transfer curve; a 3, 7 or 30 s
-  history in two plots on one time axis: levels (dBFS) and gains (reductions, output minus input; dB).
+  history of input and output peaks on an automatic dBFS scale.
 - Resizable HiDPI interface with tooltips everywhere, dark (Ember) and light (Ash) themes;
   keyboard entry of values (right-click a knob).
 - Bypass declared to the host, latency reported, no denormal slowdown in silence.

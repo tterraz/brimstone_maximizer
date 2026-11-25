@@ -67,7 +67,7 @@ au plafond (Hard, -0,3 dB), en 4x. Plafond garanti sur les échantillons, pas su
 entre échantillons.
 
 ## Interface
-900 × 680 (600 avant le 2026-11-25, historique dédoublé), redimensionnable (proportions gardées), HiDPI. Trois sections numérotées, de gauche à
+900 × 600, redimensionnable (proportions gardées), HiDPI. Trois sections numérotées, de gauche à
 droite dans l'ordre du signal (flèches entre elles) :
 1. **MAXIMIZER** : Decay (et son unité), Knee, Drive, Stereo ; grisée avec la mention
    « OFF: mix at 0 % » quand Mix est à 0 % ;
@@ -76,16 +76,19 @@ droite dans l'ordre du signal (flèches entre elles) :
    Oversampling, Level match, Delta, écart de sonie, latence.
 
 **Historique** (3, 7 ou 30 s au choix sous la légende, 7 s par défaut ; un point toutes les 25 ms, crêtes des 30 dernières ms, donc aucune crête
-perdue entre deux points), deux graphiques superposés sur le même axe du temps, chacun à une
-seule échelle (graduée à droite), cinq courbes fines masquables d'un clic sur leur légende :
-- **niveaux** (dBFS, 0 en haut à -48 en bas, grille tous les 12 dB) : *input*, *output*
-  (crêtes ; pointillés : plafond) ;
-- **gains** (dB, +24 en haut à -24 en bas, 0 au milieu en tirets) : *maximizer GR*, *clipper GR*
-  (réductions, sous 0) et *out - in* (gain total réellement appliqué, sortie moins entrée ;
-  interrompue quand l'entrée est muette).
+perdue entre deux points) : crêtes *input* et *output*, chacune masquable d'un clic sur sa
+légende ; pointillés : plafond. **Échelle dBFS automatique** (graduée à droite) sur les courbes
+affichées et la durée affichée : le bas descend aussitôt sous le niveau le plus faible (pas de
+6 dB, 1 dB de marge, au plus -90 dBFS ; en dessous : silence, ignoré) et ne remonte que quand ce
+niveau est à plus de 3 dB du pas supérieur (pas de battement) ; le haut est 0 dBFS, ou le
+multiple de 6 dB au-dessus quand la sortie dépasse 0 dBFS (Clip Off) ; 12 dB au moins ;
+graduations multiples de 6, 12 ou 24 dB selon l'étendue. Session 68 : vue des gains (réductions,
+out - in) essayée puis retirée à la demande de l'utilisateur, avec les sorties `hist_gr` et
+`hist_clip` du DSP.
 
 La durée et le choix des courbes affichées sont enregistrés avec le projet (état DPF `history`,
-`seconds=<3|7|30>;show=<un 0/1 par courbe>`) ; nouvelle instance : 7 s, toutes visibles. La courbe de transfert
+`seconds=<3|7|30>;show=<un 0/1 par courbe>`, input puis output ; un état ancien à cinq courbes
+est relu par ses deux premiers chiffres) ; nouvelle instance : 7 s, toutes visibles. La courbe de transfert
 donne le niveau de sortie pour un niveau d'entrée stable, tous réglages compris (Mix aussi).
 **Préréglages** (2026-11-25, remplace les flèches < >) : liste déroulante de l'en-tête, en deux
 sections séparées par un trait, FACTORY (usine) puis USER (les vôtres, par ordre alphabétique),
@@ -169,7 +172,8 @@ resynchronisé après rechargement d'un préréglage). Correctif à proposer à 
   48 kHz égaux à ceux de la norme à 1e-15, gain pur de +6 dB lu +6,0 LU ; états de l'interface
   déclarés, gardés et rendus) : original, plafond (1x/2x/4x, Hard/Soft), Bypass exact,
   latence en 2x/4x (écart ≤ 1,6e-5 sur un sinus de 1 kHz), changements de Decay, préréglages,
-  écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes de l'historique).
+  écrêteur pur, mesures (réductions du maximiseur et de l'écrêteur, crêtes d'entrée et de sortie
+  de l'historique).
 - Banc de CPU (`tests/bench_cpu.cpp`, hors `build.sh`, commande en tête du fichier) : ns par
   trame stéréo et charge d'une instance, 1x/2x/4x, musique, silence, Bypass, FTZ/DAZ coupés ou
   non. Mesures : `AMELIORATIONS.md` (H, A).

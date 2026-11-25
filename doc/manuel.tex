@@ -100,7 +100,7 @@ les préréglages de l'utilisateur (section~\ref{sec:fichiers}).
 % ==============================================================================================
 \section{L'interface}
 
-La fenêtre (900 × 680 points, redimensionnable en gardant ses proportions) se lit de gauche à
+La fenêtre (900 × 600 points, redimensionnable en gardant ses proportions) se lit de gauche à
 droite dans l'ordre du signal : trois sections numérotées reliées par des flèches, puis
 l'historique en bas. Chaque élément a une bulle d'aide au survol.
 
@@ -137,17 +137,12 @@ de l'écrêteur), \ctl{OUT} (crête de sortie) ; \ctl{OVERSAMPLING} (1x, 2x, 4x)
 MATCH} et \ctl{DELTA} ; l'écart de sonie entre sortie et entrée en LU ; la latence.
 
 \subsection{Historique}
-Deux graphiques l'un au-dessus de l'autre, sur le même axe du temps, chacun avec une seule
-échelle graduée à droite ; cinq courbes fines, un point toutes les 25\,ms :
-\begin{itemize}
-\item \textbf{niveaux}, en dBFS, de 0 (en haut) à $-48$ (en bas) : \emph{input} et
-  \emph{output}, les crêtes d'entrée et de sortie ; pointillés : le plafond ;
-\item \textbf{gains}, en dB, de $+24$ (en haut) à $-24$ (en bas), 0 au milieu en tirets :
-  \emph{maximizer GR} et \emph{clipper GR}, les réductions (sous 0), et \emph{out - in}, le gain
-  total réellement appliqué (sortie moins entrée), le plus souvent au-dessus de 0.
-\end{itemize}
-Une crête se lit à la verticale sur les deux graphiques : sa hauteur en haut, ce qu'elle a coûté
-en bas. Chaque point est la crête des 30 dernières millisecondes : aucune crête n'est perdue
+Deux courbes fines, un point toutes les 25\,ms : \emph{input} et \emph{output}, les crêtes
+d'entrée et de sortie, en dBFS ; pointillés : le plafond. L'échelle, graduée à droite, s'ajuste
+d'elle-même aux courbes affichées sur la durée affichée : elle descend aussitôt sous le niveau le
+plus faible (par pas de 6\dB, jusqu'à $-90$\dBFS ; plus bas, c'est un silence, ignoré) et ne
+remonte que quand ce niveau s'en est nettement éloigné, pour ne pas battre ; elle monte au-dessus
+de 0\dBFS quand la sortie le dépasse (Clip Off), et montre 12\dB{} au moins. Chaque point est la crête des 30 dernières millisecondes : aucune crête n'est perdue
 entre deux points. Un clic sur une légende montre ou cache sa courbe ; le sélecteur \ctl{3 s |
 7 s | 30 s} règle la durée affichée. Ces deux choix sont enregistrés avec le projet.
 
@@ -520,10 +515,9 @@ est prioritaire.
 100\,ms. \ctl{GR} : réduction du maximiseur sous son gain de compensation, $g\,K$ en dB (0 quand
 Mix est à 0\,\%). \ctl{CLIP} : réduction de l'écrêteur, $y_c/y$ en dB, borne de sûreté comprise.
 
-\paragraph{Historique.} Le greffon garde, par tranches de 5\,ms, les crêtes d'entrée et de sortie
-et les réductions maximales ; l'interface lit toutes les 25\,ms la crête des sept dernières
-tranches (environ 30\,ms) : aucune crête n'échappe à l'affichage. \emph{out - in} est
-$20\log_{10}(\text{sortie}/\text{entrée})$ sur ces crêtes, interrompu quand l'entrée est muette.
+\paragraph{Historique.} Le greffon garde, par tranches de 5\,ms, les crêtes d'entrée et de
+sortie ; l'interface lit toutes les 25\,ms la crête des sept dernières tranches (environ
+30\,ms) : aucune crête n'échappe à l'affichage.
 
 \paragraph{Sonie.} La sonie suit la recommandation ITU-R BS.1770 : chaque canal de l'entrée et de
 la sortie passe par la pondération K (un plateau de +4\dB{} au-dessus d'environ 1,7\,kHz, puis

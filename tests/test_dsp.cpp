@@ -349,10 +349,9 @@ int main()
         clipper.values[kParamGain] = 12.0f;   // 0.5 x 4 = 2 > ceiling: clipped by ~6.3 dB
         process(clipper, S, S, oL, oR, nullptr, m);
         char buf[160];
-        std::snprintf(buf, sizeof(buf), "clipper, gain +12: maximizer GR %.1f, clip %.1f dB (history %.1f), in %.3f, out %.3f",
-                      m[kParamMeterGR], m[kParamMeterClip], m[kParamHistClip], m[kParamHistIn], m[kParamHistOut]);
+        std::snprintf(buf, sizeof(buf), "clipper, gain +12: maximizer GR %.1f, clip %.1f dB, history in %.3f, out %.3f",
+                      m[kParamMeterGR], m[kParamMeterClip], m[kParamHistIn], m[kParamHistOut]);
         check(m[kParamMeterGR] == 0.0f && fabsf(m[kParamMeterClip] + 6.32f) < 0.1f
-              && fabsf(m[kParamHistClip] - m[kParamMeterClip]) < 0.1f
               && fabsf(m[kParamHistIn] - 0.5f) < 0.01f && fabsf(m[kParamHistOut] - dbToGain(-0.3f)) < 0.01f, buf);
 
         Settings def;
@@ -360,11 +359,10 @@ int main()
             def.values[i] = kBrimstonePresets[0].values[i];
         def.values[kParamClip] = kClipOff;
         process(def, S, S, oL, oR, nullptr, m);
-        std::snprintf(buf, sizeof(buf), "default, clip off (knee -12): maximizer GR %.1f dB (history %.1f), clip %.1f dB",
-                      m[kParamMeterGR], m[kParamHistGR], m[kParamMeterClip]);
+        std::snprintf(buf, sizeof(buf), "default, clip off (knee -12): maximizer GR %.1f dB, clip %.1f dB",
+                      m[kParamMeterGR], m[kParamMeterClip]);
         // 0.5 = -6 dBFS, 6 dB above the knee: reduction 6 dB below the makeup gain
-        check(fabsf(m[kParamMeterGR] + 6.02f) < 0.1f && fabsf(m[kParamHistGR] + 6.02f) < 0.1f
-              && m[kParamMeterClip] == 0.0f, buf);
+        check(fabsf(m[kParamMeterGR] + 6.02f) < 0.1f && m[kParamMeterClip] == 0.0f, buf);
     }
 
     // 9. denormals ------------------------------------------------------------------------------
