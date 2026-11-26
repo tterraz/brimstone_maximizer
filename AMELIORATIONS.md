@@ -131,6 +131,13 @@ K. **Filtre de suréchantillonnage allongé** (demandé le 2026-11-25, après le
 
 Version : reste 1.1.0 (décision du 2026-11-25 : le logiciel n'a jamais été utilisé).
 
+## Demandé le 2026-11-26 (après la release 1.1.0)
+L. **Courbe « maximizer » dans l'historique** : crête à l'entrée de l'écrêteur (après maximiseur,
+   Mix et Gain), indépendante de l'écrêteur, de Delta, de Level match et de Bypass (test 8 de
+   `test_dsp`) ; la courbe *output* reste la sortie du greffon (avec Delta : le niveau de la
+   différence, ce qu'on entend). Sortie DSP `hist_max` ajoutée en dernier (indices des
+   paramètres inchangés). Demande un nouveau numéro de version à la prochaine release.
+
 ## Écarté
 - **Mode limiteur** (relâchement long séparé de l'anticipation, attaque lissée, détection des crêtes
   entre échantillons) : refusé par l'utilisateur le 2026-11-24. Ne pas le reproposer.

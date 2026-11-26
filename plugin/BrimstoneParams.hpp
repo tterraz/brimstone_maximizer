@@ -33,6 +33,7 @@ enum BrimstoneParam {
     kParamMeterClip,   // reduction by the clipper, dB (~100 ms release)
     kParamHistIn,      // history: input peak over the last ~30 ms, linear
     kParamHistOut,     // history: output peak over the last ~30 ms, linear
+    kParamHistMax,     // history: peak into the clipper (maximizer, mix, gain) over ~30 ms, linear
     kParamCount
 };
 
@@ -67,6 +68,7 @@ static const BrimstoneRange kBrimstoneRanges[kParamCount] = {
     { -40.0f,   0.0f,   0.0f },   // meter clip
     {   0.0f,   2.0f,   0.0f },   // history in
     {   0.0f,   2.0f,   0.0f },   // history out
+    {   0.0f,   4.0f,   0.0f },   // history maximizer (before the clipper: up to +12 dBFS)
 };
 
 // ------------------------------------------------------------------------------------------------

@@ -7,8 +7,8 @@
  * Everything is drawn in a logical 900 x 600 space, scaled to the window size (resizable,
  * aspect ratio kept).  Three sections, left to right in the order of the signal:
  *   1 MAXIMIZER (decay, knee, drive, stereo) -> 2 OUTPUT STAGE (mix, gain, ceiling, clip)
- *   -> 3 MONITOR (meters, oversampling, level match), and the history below: input and output
- * peaks on a dBFS scale that follows the levels shown (click a legend entry to show / hide it).
+ *   -> 3 MONITOR (meters, oversampling, level match), and the history below: input, maximizer
+ * (into the clipper) and output peaks on a dBFS scale that follows the levels shown (click a legend entry to show / hide it).
  * Knobs: drag vertically (Shift = fine), mouse wheel, double-click or Ctrl+click = default,
  * right-click = type a value (Enter / Escape).  Every control has a tooltip.
  * A / B: two sets of settings to compare (header: A | B, copy to the other); the inactive one is
@@ -51,7 +51,8 @@ static const float kArcSweep = 1.5f * kPi;
 // identity: burnt orange and ochre on ash-grey paper).  The choice is a preference of the user
 // (BrimstonePrefs.hpp), switched by the EMBER | ASH pill of the header.
 
-enum { kSeriesIn = 0, kSeriesOut, kNumSeries };
+// history series; the index is their order in the saved state ("show="), new ones at the end
+enum { kSeriesIn = 0, kSeriesOut, kSeriesMax, kNumSeries };
 
 struct Theme {
     // background, header, panels
@@ -98,7 +99,7 @@ static const Theme kThemes[BrimstonePrefs::kThemeCount] = {
         Color(70, 34, 32, 0.6f), Color(120, 50, 40, 0.8f), Color(120, 90, 85, 0.35f), Color(255, 200, 120, 0.25f),
         Color(255, 70, 20, 0.22f), Color(255, 200, 80, 0.8f), Color(255, 70, 20, 0.0f), Color(255, 236, 190),
         Color(60, 26, 24), Color(255, 220, 160, 0.6f), Color(70, 34, 32, 0.5f), Color(255, 200, 120, 0.35f),
-        { Color(170, 120, 100), Color(255, 184, 52) },
+        { Color(170, 120, 100), Color(255, 184, 52), Color(255, 76, 28, 0.85f) },
         Color(8, 3, 4, 0.95f), Color(255, 110, 40, 0.6f), Color(255, 184, 52),
     },
     {   // Ash
@@ -121,7 +122,7 @@ static const Theme kThemes[BrimstonePrefs::kThemeCount] = {
         Color(150, 135, 120, 0.35f), Color(150, 110, 90, 0.7f), Color(110, 98, 91, 0.35f), Color(168, 101, 15, 0.45f),
         Color(194, 65, 12, 0.15f), Color(230, 120, 40, 0.6f), Color(230, 120, 40, 0.0f), Color(138, 28, 12),
         Color(190, 180, 168), Color(138, 28, 12, 0.7f), Color(150, 135, 120, 0.3f), Color(168, 101, 15, 0.6f),
-        { Color(140, 110, 96), Color(150, 88, 12) },
+        { Color(140, 110, 96), Color(150, 88, 12), Color(194, 65, 12, 0.85f) },
         Color(255, 253, 249, 0.97f), Color(194, 65, 12, 0.6f), Color(255, 236, 200),
     },
 };
@@ -144,7 +145,7 @@ static const Rect kSecMax  = { 20, 70, 310, 380 };
 static const Rect kSecOut  = { 340, 70, 260, 380 };
 static const Rect kSecMon  = { 610, 70, 270, 380 };
 static const Rect kHistory = { 20, 460, 860, 128 };
-static const Rect kHistPlot = { 130, 468, 718, 112 };   // input and output peaks, dBFS
+static const Rect kHistPlot = { 130, 468, 718, 112 };   // input, maximizer and output peaks, dBFS
 
 enum { kKnobDecay = 0, kKnobKnee, kKnobDrive, kKnobMix, kKnobGain, kKnobCeiling, kKnobClipKnee, kNumKnobs };
 
@@ -247,7 +248,8 @@ static const Zone kZones[kNumZones] = {
       "Gain reduction of the clipper, dB." },
     { { kMeterX[3] - 6, kMeterY, kMeterW + 12, kMeterH + 40 }, "OUT", "Output peak level, dBFS." },
     { kHistPlot, "HISTORY",
-      "Input and output peak levels, dBFS; dashed: ceiling. The scale follows the levels shown: "
+      "Peak levels, dBFS: input, maximizer (into the clipper, after Mix and Gain) and output "
+      "(what the plugin plays: with Delta, the difference); dashed: ceiling. The scale follows the levels shown: "
       "it goes down to the quietest one and up above 0 dBFS when the output exceeds it. "
       "Click a legend entry to show or hide its curve (saved with the project)." },
     { kTheme, "THEME",
@@ -269,7 +271,10 @@ static const int kHistSeconds[kHistLengthCount] = { 3, 7, 30 };
 static const char* const kHistLengthNames[kHistLengthCount] = { "3 s", "7 s", "30 s" };
 
 // history series, each can be hidden by clicking its legend entry
-static const char* const kSeriesNames[kNumSeries] = { "input", "output" };
+static const char* const kSeriesNames[kNumSeries] = { "input", "output", "maximizer" };
+// row of each series in the legend, and drawing order (last on top): signal order
+static const int kSeriesRow[kNumSeries] = { 0, 2, 1 };
+static const int kSeriesDrawOrder[kNumSeries] = { kSeriesIn, kSeriesMax, kSeriesOut };
 // automatic dBFS scale: steps of 6 dB; at least 12 dB shown, down to -90 dBFS (below: silence)
 static const float kHistStep = 6.0f;
 static const float kHistMinRange = 12.0f;
@@ -277,7 +282,7 @@ static const float kHistFloor = -90.0f;
 
 static Rect legendRect(const int s)
 {
-    return { kHistory.x + 10, kHistory.y + 26 + s * 17.0f, 104, 15 };
+    return { kHistory.x + 10, kHistory.y + 26 + kSeriesRow[s] * 17.0f, 104, 15 };
 }
 static const int kHoverZoneBase = 100;
 
@@ -321,8 +326,10 @@ public:
             const float in = 0.25f + 0.7f * std::exp(-t * 9.0f) * ((i / 20) % 2 ? 1.0f : 0.7f)
                            + 0.03f * std::sin(i * 1.7f);
             const float g = in > 0.4f ? 0.4f / in : 1.0f;   // maximizer reduction
+            const float m = in * std::sqrt(g) * 2.2f;          // into the clipper
             fHist[kSeriesIn][i] = in;
-            fHist[kSeriesOut][i] = std::fmin(in * g * 2.2f, 0.95f);
+            fHist[kSeriesMax][i] = m;
+            fHist[kSeriesOut][i] = std::fmin(m, 0.95f);
         }
 #endif
     }
@@ -402,6 +409,7 @@ protected:
         fHistPos = (fHistPos + 1) % kHistorySize;
         fHist[kSeriesIn][fHistPos] = fValues[kParamHistIn];
         fHist[kSeriesOut][fHistPos] = fValues[kParamHistOut];
+        fHist[kSeriesMax][fHistPos] = fValues[kParamHistMax];
         repaint();
     }
 
@@ -875,9 +883,9 @@ private:
                 if (std::atoi(seconds + 8) == kHistSeconds[i])
                     fHistLength = i;
         const char* const show = std::strstr(value, "show=");
-        if (show != nullptr && std::strlen(show + 5) >= static_cast<size_t>(kNumSeries))
-            for (int s = 0; s < kNumSeries; ++s)
-                fShow[s] = show[5 + s] != '0';
+        if (show != nullptr)   // older states have fewer curves: the others stay shown
+            for (int s = 0; s < kNumSeries && (show[5 + s] == '0' || show[5 + s] == '1'); ++s)
+                fShow[s] = show[5 + s] == '1';
         repaint();
     }
 
@@ -1898,10 +1906,9 @@ private:
         const float dx = r.w / (historyPoints() - 1);
         save();
         scissor(r.x, r.y - 1, r.w, r.h + 2);
-        if (fShow[kSeriesIn])
-            historyLine(kSeriesIn, r.x, dx, levelY, 0.9f);
-        if (fShow[kSeriesOut])
-            historyLine(kSeriesOut, r.x, dx, levelY, 1.0f);
+        for (const int s : kSeriesDrawOrder)
+            if (fShow[s])
+                historyLine(s, r.x, dx, levelY, s == kSeriesIn ? 0.9f : 1.0f);
         restore();
     }
 

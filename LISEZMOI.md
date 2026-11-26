@@ -76,19 +76,21 @@ droite dans l'ordre du signal (flèches entre elles) :
    Oversampling, Level match, Delta, écart de sonie, latence.
 
 **Historique** (3, 7 ou 30 s au choix sous la légende, 7 s par défaut ; un point toutes les 25 ms, crêtes des 30 dernières ms, donc aucune crête
-perdue entre deux points) : crêtes *input* et *output*, chacune masquable d'un clic sur sa
-légende ; pointillés : plafond. **Échelle dBFS automatique** (graduée à droite) sur les courbes
+perdue entre deux points) : crêtes *input*, *maximizer* (entrée de l'écrêteur, après maximiseur, Mix
+et Gain, à la cadence interne, bornée à +12 dBFS ; sortie `hist_max` du DSP, ajoutée le
+2026-11-26) et *output* (sortie du greffon : avec Delta, la différence ; après Level match et
+Bypass), chacune masquable d'un clic sur sa légende ; pointillés : plafond. **Échelle dBFS automatique** (graduée à droite) sur les courbes
 affichées et la durée affichée : le bas descend aussitôt sous le niveau le plus faible (pas de
 6 dB, 1 dB de marge, au plus -90 dBFS ; en dessous : silence, ignoré) et ne remonte que quand ce
 niveau est à plus de 3 dB du pas supérieur (pas de battement) ; le haut est 0 dBFS, ou le
-multiple de 6 dB au-dessus quand la sortie dépasse 0 dBFS (Clip Off) ; 12 dB au moins ;
+multiple de 6 dB au-dessus quand une courbe dépasse 0 dBFS (maximizer poussé par Gain, Clip Off) ; 12 dB au moins ;
 graduations multiples de 6, 12 ou 24 dB selon l'étendue. Session 68 : vue des gains (réductions,
 out - in) essayée puis retirée à la demande de l'utilisateur, avec les sorties `hist_gr` et
 `hist_clip` du DSP.
 
 La durée et le choix des courbes affichées sont enregistrés avec le projet (état DPF `history`,
-`seconds=<3|7|30>;show=<un 0/1 par courbe>`, input puis output ; un état ancien à cinq courbes
-est relu par ses deux premiers chiffres) ; nouvelle instance : 7 s, toutes visibles. La courbe de transfert
+`seconds=<3|7|30>;show=<un 0/1 par courbe>`, input, output puis maximizer (ordre d'ajout, pas
+celui de la légende) ; un état plus court laisse visibles les courbes manquantes) ; nouvelle instance : 7 s, toutes visibles. La courbe de transfert
 donne le niveau de sortie pour un niveau d'entrée stable, tous réglages compris (Mix aussi).
 **Préréglages** (2026-11-25, remplace les flèches < >) : liste déroulante de l'en-tête, en deux
 sections séparées par un trait, FACTORY (usine) puis USER (les vôtres, par ordre alphabétique),

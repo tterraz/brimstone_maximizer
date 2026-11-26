@@ -137,12 +137,16 @@ de l'écrêteur), \ctl{OUT} (crête de sortie) ; \ctl{OVERSAMPLING} (1x, 2x, 4x)
 MATCH} et \ctl{DELTA} ; l'écart de sonie entre sortie et entrée en LU ; la latence.
 
 \subsection{Historique}
-Deux courbes fines, un point toutes les 25\,ms : \emph{input} et \emph{output}, les crêtes
-d'entrée et de sortie, en dBFS ; pointillés : le plafond. L'échelle, graduée à droite, s'ajuste
+Trois courbes fines, un point toutes les 25\,ms, en dBFS : \emph{input}, la crête d'entrée ;
+\emph{maximizer}, la crête à l'entrée de l'écrêteur (après le maximiseur, Mix et Gain) ;
+\emph{output}, la crête de ce que joue le greffon (avec Delta, la différence ; avec Level match,
+après la correction ; avec Bypass, l'entrée retardée). La courbe \emph{maximizer} ne dépend ni de
+l'écrêteur ni de ces modes d'écoute : son écart à \emph{output} montre ce que l'écrêteur coupe.
+Pointillés : le plafond. L'échelle, graduée à droite, s'ajuste
 d'elle-même aux courbes affichées sur la durée affichée : elle descend aussitôt sous le niveau le
 plus faible (par pas de 6\dB, jusqu'à $-90$\dBFS ; plus bas, c'est un silence, ignoré) et ne
 remonte que quand ce niveau s'en est nettement éloigné, pour ne pas battre ; elle monte au-dessus
-de 0\dBFS quand la sortie le dépasse (Clip Off), et montre 12\dB{} au moins. Chaque point est la crête des 30 dernières millisecondes : aucune crête n'est perdue
+de 0\dBFS quand une courbe le dépasse (\emph{maximizer} poussé par Gain, Clip Off), et montre 12\dB{} au moins. Chaque point est la crête des 30 dernières millisecondes : aucune crête n'est perdue
 entre deux points. Un clic sur une légende montre ou cache sa courbe ; le sélecteur \ctl{3 s |
 7 s | 30 s} règle la durée affichée. Ces deux choix sont enregistrés avec le projet.
 
@@ -515,8 +519,9 @@ est prioritaire.
 100\,ms. \ctl{GR} : réduction du maximiseur sous son gain de compensation, $g\,K$ en dB (0 quand
 Mix est à 0\,\%). \ctl{CLIP} : réduction de l'écrêteur, $y_c/y$ en dB, borne de sûreté comprise.
 
-\paragraph{Historique.} Le greffon garde, par tranches de 5\,ms, les crêtes d'entrée et de
-sortie ; l'interface lit toutes les 25\,ms la crête des sept dernières tranches (environ
+\paragraph{Historique.} Le greffon garde, par tranches de 5\,ms, les crêtes d'entrée, de
+sortie et d'entrée de l'écrêteur (celle-ci à la cadence interne, donc entre les échantillons en
+2x et 4x ; bornée à $+12$\dBFS) ; l'interface lit toutes les 25\,ms la crête des sept dernières tranches (environ
 30\,ms) : aucune crête n'échappe à l'affichage.
 
 \paragraph{Sonie.} La sonie suit la recommandation ITU-R BS.1770 : chaque canal de l'entrée et de

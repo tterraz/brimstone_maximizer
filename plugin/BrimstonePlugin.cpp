@@ -463,6 +463,7 @@ protected:
         case kParamMeterClip: output(p, "Clipper reduction", "meter_clip", "dB"); break;
         case kParamHistIn:    output(p, "History input", "hist_in", ""); break;
         case kParamHistOut:   output(p, "History output", "hist_out", ""); break;
+        case kParamHistMax:   output(p, "History maximizer", "hist_max", ""); break;
         }
     }
 
@@ -573,7 +574,7 @@ protected:
         float* const outL = outputs[0];
         float* const outR = outputs[1];
 
-        float peakIn = 0.0f, peakOut = 0.0f, minRel = 1.0f, minClip = 1.0f;
+        float peakIn = 0.0f, peakOut = 0.0f, peakMax = 0.0f, minRel = 1.0f, minClip = 1.0f;
         double sumIn = 0.0, sumOut = 0.0;
 
         const float compStart = fComp;
@@ -663,6 +664,7 @@ protected:
                 {
                     const float dry = fDry[c][rSig];
                     const float y = (dry + (wet[c] * fCeil - dry) * fMix) * fOut;
+                    peakMax = std::fmax(peakMax, std::fabs(y));   // into the clipper (internal rate)
                     float yc = y;
                     if (clip == kClipHard)
                         yc = std::fmin(std::fmax(y, -fCeil), fCeil);
@@ -764,6 +766,7 @@ protected:
         const unsigned bin = static_cast<unsigned>(0.005f * sr) + 1;
         fRecentIn.add(peakIn, frames, bin);
         fRecentOut.add(peakOut, frames, bin);
+        fRecentMax.add(peakMax, frames, bin);
 
         // loudness (K-weighted mean square over ~1.5 s, BS.1770) for the level match
         if (frames > 0)
@@ -788,6 +791,7 @@ protected:
         fParams[kParamMeterClip] = gainToDb(fMeterClip, -40.0f);
         fParams[kParamHistIn] = std::fmin(fRecentIn.value(), 2.0f);
         fParams[kParamHistOut] = std::fmin(fRecentOut.value(), 2.0f);
+        fParams[kParamHistMax] = std::fmin(fRecentMax.value(), 4.0f);
     }
 
 private:
@@ -932,6 +936,7 @@ private:
         fMeterRel = fMeterClip = 1.0f;
         fRecentIn.reset();
         fRecentOut.reset();
+        fRecentMax.reset();
         fPowIn = fPowOut = 0.0;
         for (int c = 0; c < 2; ++c)
         {
@@ -959,7 +964,7 @@ private:
     float fBypass = 0.0f, fDelta = 0.0f;
     float fSmoothInt = 0.0f, fSmoothBase = 0.0f;
     float fMeterIn = 0.0f, fMeterOut = 0.0f, fMeterRel = 1.0f, fMeterClip = 1.0f;
-    RecentPeak fRecentIn, fRecentOut;
+    RecentPeak fRecentIn, fRecentOut, fRecentMax;
     double fPowIn = 0.0, fPowOut = 0.0;
     KWeighting fKIn[2], fKOut[2];
     float fComp = 1.0f, fCompTarget = 1.0f;

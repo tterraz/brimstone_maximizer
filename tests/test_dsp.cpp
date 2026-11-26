@@ -12,7 +12,8 @@
  * 5. Decay sweep: no step in the gain larger than with a fixed decay (no click).
  * 6. Presets: every preset gives a finite output under the ceiling.
  * 7. Clipper preset: output == clip(input x gain) at 1x.
- * 8. Meters: maximizer and clipper reductions, history peaks.
+ * 8. Meters: maximizer and clipper reductions, history peaks (the maximizer curve, into the
+ *    clipper, is the same with Delta, Level match or Bypass on).
  * 10. Delta: zero when nothing is clipped nor reduced; with the Clipper preset, exactly what the
  *     clipper removes; Bypass has priority.
  * 11. Soft clip knee: at 1x with Mix 0, output == soft clip of (input x gain) from the knee.
@@ -353,6 +354,25 @@ int main()
                       m[kParamMeterGR], m[kParamMeterClip], m[kParamHistIn], m[kParamHistOut]);
         check(m[kParamMeterGR] == 0.0f && fabsf(m[kParamMeterClip] + 6.32f) < 0.1f
               && fabsf(m[kParamHistIn] - 0.5f) < 0.01f && fabsf(m[kParamHistOut] - dbToGain(-0.3f)) < 0.01f, buf);
+        // into the clipper: 0.5 x 4 = 2 (+6 dBFS), whatever is listened to
+        const float histMax = m[kParamHistMax];
+        std::snprintf(buf, sizeof(buf), "clipper, gain +12: history maximizer %.3f", histMax);
+        check(fabsf(histMax - 2.0f) < 0.02f, buf);
+        for (const int mode : { 0, 1, 2 })
+        {
+            Settings t = clipper;
+            const char* name = mode == 0 ? "delta" : mode == 1 ? "level match" : "bypass";
+            if (mode == 0)
+                t.delta = 1.0f;
+            else if (mode == 1)
+                t.values[kParamMatch] = 1.0f;
+            else
+                t.bypass = 1.0f;
+            process(t, S, S, oL, oR, nullptr, m);
+            std::snprintf(buf, sizeof(buf), "  with %s: history maximizer %.3f, out %.3f", name,
+                          m[kParamHistMax], m[kParamHistOut]);
+            check(m[kParamHistMax] == histMax, buf);
+        }
 
         Settings def;
         for (int i = 0; i < kPresetParamCount; ++i)
