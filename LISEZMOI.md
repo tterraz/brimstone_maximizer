@@ -256,6 +256,9 @@ Améliorations : voir `AMELIORATIONS.md`.
   (`gh` hors du PATH du bac à sable, déjà connecté au compte `tterraz`). **La version 1.1.0 est
   publiée** : tout changement livré ensuite demande un nouveau numéro (`getVersion`, installateur,
   documents ; choix de l'utilisateur).
+- Depuis la release 1.1.0 : courbe *maximizer* de l'historique (2026-11-26, `18797c9`, point L
+  d'`AMELIORATIONS.md`), non publiée (pas de release pour le moment, décision) ; à la prochaine
+  release : nouveau numéro, captures de `doc/captures/` à refaire (légende à trois courbes).
 - Version : restée 1.1.0 malgré les ajouts du 2026-11-25 (décision de l'utilisateur : le
   logiciel n'avait jamais été utilisé), puis publiée telle quelle. Les réglages des projets sont
   relus par symbole : ajouter un paramètre plus tard ne casse pas un projet.
