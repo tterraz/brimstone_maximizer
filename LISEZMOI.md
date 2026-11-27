@@ -125,6 +125,16 @@ match, compare deux réglages à sonie égale. Enregistré avec le projet : le j
 des paramètres, l'autre est l'état DPF `ab` (`slot=<0|1>;other=<13 valeurs>`, nombres en point
 décimal) ; le préréglage d'origine du jeu inactif n'est pas gardé dans le projet (affiché
 « Set A » ou « Set B » à la réouverture). Bypass et Delta n'en font pas partie.
+**RANDOM** (en-tête, entre la pastille de thème et Bypass, à la place du FREEZE de Tinplate) :
+tire au hasard les 13 réglages d'un préréglage (`randomize`, `std::mt19937` semé par
+`std::random_device`) : valeurs continues uniformes sur toute leur plage, arrondies comme
+l'affichage des boutons (Mix à 1 %, Decay en ms à 0,01, les autres à 0,1) ; sélecteurs (unité de
+Decay, Clip, Stereo, Oversampling, Level match) : une de leurs positions au hasard. Bypass et
+Delta ne changent pas. Une seule action, sans état ; le préréglage affiché devient « Random ».
+Drive et Gain pouvant sortir forts, la bulle d'aide conseille de copier d'abord le jeu courant
+dans l'autre (A>B). Pour lui faire place (2026-11-27), la boîte des préréglages est passée de 196
+à 170 points (nom trop long abrégé par « ... », l'astérisque toujours visible), A/B, copie et thème
+se sont décalés, Bypass est passé à 98 points et l'espacement de « MAXIMIZER » de 5 à 4.
 **Bulle d'aide sur chaque élément** (boutons, sélecteurs, vu-mètres, courbe, préréglages, Bypass).
 Boutons : glisser verticalement (Maj : fin), molette, double-clic ou Ctrl+clic : défaut,
 **clic droit : saisie au clavier** (Entrée, Échap).
@@ -259,6 +269,9 @@ Améliorations : voir `AMELIORATIONS.md`.
 - Depuis la release 1.1.0 : courbe *maximizer* de l'historique (2026-11-26, `18797c9`, point L
   d'`AMELIORATIONS.md`), non publiée (pas de release pour le moment, décision) ; à la prochaine
   release : nouveau numéro, captures de `doc/captures/` à refaire (légende à trois courbes).
+  Puis bouton RANDOM (2026-11-27, point M) : vu à l'écran sous Wine (en-tête, bulle d'aide),
+  tirage non essayé au clic (aucun clic automatisé possible ici) ; les captures montreront aussi
+  le nouvel en-tête. Zone de bulle d'aide RANDOM : 118 (`-DBRIMSTONE_UI_DEMO=118`).
 - Version : restée 1.1.0 malgré les ajouts du 2026-11-25 (décision de l'utilisateur : le
   logiciel n'avait jamais été utilisé), puis publiée telle quelle. Les réglages des projets sont
   relus par symbole : ajouter un paramètre plus tard ne casse pas un projet.

@@ -19,6 +19,7 @@
  * settings...", name typed in the box; delete with the cross of a saved preset, clicked twice).
  * Two themes, Ember (dark) and Ash (light), switched by the EMBER | ASH pill of the header; the
  * choice is a preference of the user (BrimstonePrefs.hpp), not saved with the project.
+ * RANDOM (header, by Bypass): draws every setting of a preset at random (Bypass and Delta kept).
  */
 
 #include "DistrhoUI.hpp"
@@ -32,6 +33,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <locale>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -183,9 +185,9 @@ static const Rect kClip    = { 400, 418, 130, 22 };
 static const Rect kOvers   = { 734, 326, 138, 22 };
 static const Rect kMatch   = { 622, 358, 120, 24 };
 static const Rect kDelta   = { 750, 358, 122, 24 };
-static const Rect kPreset  = { 384, 16, 196, 26 };   // drop-down box; the list opens below it
-static const Rect kAB      = { 588, 17, 50, 24 };    // A | B
-static const Rect kCopy    = { 642, 17, 34, 24 };    // copy the current set to the other
+static const Rect kPreset  = { 366, 16, 170, 26 };   // drop-down box; the list opens below it
+static const Rect kAB      = { 544, 17, 48, 24 };    // A | B
+static const Rect kCopy    = { 596, 17, 34, 24 };    // copy the current set to the other
 static const float kMenuItemH = 22.0f;     // preset list: item
 static const float kMenuHeaderH = 20.0f;   // section title (FACTORY, USER)
 static const float kMenuDividerH = 9.0f;   // line before "Save current settings..."
@@ -198,8 +200,9 @@ struct MenuRow {
     int index;    // factory preset, saved preset (in fUserNames) or section (0 factory, 1 user)
     float y, h;   // y from the top of the list content
 };
-static const Rect kTheme   = { 684, 17, 76, 24 };
-static const Rect kBypass  = { 768, 14, 108, 30 };
+static const Rect kTheme   = { 638, 17, 72, 24 };
+static const Rect kRandom  = { 718, 17, 56, 24 };    // every preset setting drawn at random
+static const Rect kBypass  = { 782, 14, 98, 30 };
 static const Rect kHistLengthBox = { 30, 571, 92, 14 };   // history length, under the legend
 
 static const float kMeterX[4] = { 642.0f, 700.0f, 758.0f, 816.0f };   // IN, GR, CLIP, OUT
@@ -209,7 +212,7 @@ static const float kMeterY = 100.0f, kMeterH = 168.0f, kMeterW = 22.0f;
 enum {
     kZoneUnit = 0, kZoneStereo, kZoneGraph, kZoneClip, kZoneOvers, kZoneMatch, kZoneDelta, kZonePreset,
     kZoneBypass, kZoneIn, kZoneGR, kZoneClipMeter, kZoneOut, kZoneHistory, kZoneTheme, kZoneAB, kZoneCopy,
-    kZoneHistLength, kNumZones
+    kZoneHistLength, kZoneRandom, kNumZones
 };
 
 struct Zone {
@@ -262,6 +265,9 @@ static const Zone kZones[kNumZones] = {
       "Copies the current settings into the other set (A > B or B > A)." },
     { kHistLengthBox, "HISTORY LENGTH",
       "Time shown by the history: 3, 7 or 30 seconds (saved with the project)." },
+    { kRandom, "RANDOM",
+      "Draws every setting at random over its whole range (Bypass and Delta are kept). "
+      "Beware: Drive and Gain may come out high. To come back, copy to the other set (A>B) first." },
 };
 
 // history: one point every 25 ms, the longest length kept; the selector shows the last 3, 7 or 30 s
@@ -488,6 +494,7 @@ protected:
         if (kPreset.contains(x, y)) { openMenu(); return true; }
         if (kAB.contains(x, y)) { switchSlot(static_cast<int>(segmentAt(kAB, x, 2))); return true; }
         if (kCopy.contains(x, y)) { copySlot(); return true; }
+        if (kRandom.contains(x, y)) { randomize(); return true; }
         if (kHistLengthBox.contains(x, y))
         {
             fHistLength = static_cast<int>(segmentAt(kHistLengthBox, x, kHistLengthCount));
@@ -899,6 +906,41 @@ private:
         repaint();
     }
 
+    // RANDOM: every preset setting drawn uniformly over its range (switches: one of their
+    // positions), rounded as the knobs show them; shown as the preset "Random"
+    void randomize()
+    {
+        float values[kPresetParamCount];
+        for (int i = 0; i < kPresetParamCount; ++i)
+        {
+            const BrimstoneRange& r = kBrimstoneRanges[i];
+            switch (i)
+            {
+            case kParamDecayUnit:
+            case kParamClip:
+            case kParamStereo:
+            case kParamOversampling:
+            case kParamMatch:
+            {
+                std::uniform_int_distribution<int> pick(static_cast<int>(r.min), static_cast<int>(r.max));
+                values[i] = static_cast<float>(pick(fRandom));
+                break;
+            }
+            default:
+            {
+                std::uniform_real_distribution<float> draw(r.min, r.max);
+                const float step = i == kParamDecayMs ? 0.01f : i == kParamMix ? 1.0f : 0.1f;
+                values[i] = clampValue(i, std::round(draw(fRandom) / step) * step);
+                break;
+            }
+            }
+        }
+        loadValues(values);
+        fPreset = -1;
+        fPresetUser = false;
+        fPresetName = "Random";
+    }
+
     void applyPreset(const int index)
     {
         loadValues(kBrimstonePresets[index].values);
@@ -1193,6 +1235,24 @@ private:
         text(x, y, str, nullptr);
     }
 
+    // the text shortened with "..." to fit in width (font, size and spacing as label())
+    std::string fitText(std::string str, const float width, const float size, const float spacing)
+    {
+        fontFaceId(fFont);
+        fontSize(size);
+        textLetterSpacing(spacing);
+        DGL_NAMESPACE::Rectangle<float> b;
+        if (textBounds(0, 0, str.c_str(), nullptr, b) <= width)
+            return str;
+        while (!str.empty())
+        {
+            str.pop_back();
+            if (textBounds(0, 0, (str + "...").c_str(), nullptr, b) <= width)
+                break;
+        }
+        return str + "...";
+    }
+
     void panel(const Rect& r)
     {
         beginPath();
@@ -1354,7 +1414,7 @@ private:
         fontBlur(0);
         fillPaint(linearGradient(0, 14, 0, 44, fT->gold, fT->hot));
         text(26, 29, "BRIMSTONE", nullptr);
-        label(256, 31, 14, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "MAXIMIZER", 5);
+        label(252, 31, 14, fT->dim, ALIGN_LEFT | ALIGN_MIDDLE, "MAXIMIZER", 4);
 
         // preset drop-down box
         beginPath();
@@ -1372,7 +1432,10 @@ private:
         }
         else
         {
-            std::snprintf(name, sizeof(name), "%s%s", fPresetName.c_str(), presetModified() ? " *" : "");
+            // long names shortened before the arrow, the "*" always shown
+            const char* const star = presetModified() ? " *" : "";
+            const float room = kPreset.w - 12 - 26 - (*star ? 12.0f : 0.0f);
+            std::snprintf(name, sizeof(name), "%s%s", fitText(fPresetName, room, 12, 0.5f).c_str(), star);
             label(kPreset.x + 12, kPreset.y + kPreset.h * 0.5f, 12, fT->text, ALIGN_LEFT | ALIGN_MIDDLE, name, 0.5f);
         }
         // arrow: down when closed, up when open
@@ -1400,6 +1463,17 @@ private:
 
         // theme
         segmented(kTheme, kThemeNames, BrimstonePrefs::kThemeCount, fTheme, 9);
+
+        // random: a one-shot button (no state), like copy
+        button(kRandom, false, "RANDOM", 9);
+        if (fHover == hoverOf(kRandom))
+        {
+            beginPath();
+            roundedRect(kRandom.x, kRandom.y, kRandom.w, kRandom.h, 5);
+            strokeWidth(1.0f);
+            strokeColor(fT->hoverEdge);
+            stroke();
+        }
 
         // bypass
         const bool bypassed = fValues[kParamBypass] > 0.5f;
@@ -2168,6 +2242,7 @@ private:
     int fHistLength = 1;   // index in kHistSeconds (7 s)
     int fHistPos = 0;
     std::chrono::steady_clock::time_point fLastPush;
+    std::mt19937 fRandom { std::random_device{}() };
 #ifdef BRIMSTONE_UI_DEMO_PRESET
     bool fDemoPresetDone = false;
 #endif

@@ -23,6 +23,7 @@ dry/wet mix, stereo modes, delta listening, loudness-matched comparison and pres
   loudness; the loudness change is shown in LU.
 - **Delta**: listen to what the maximizer and the clipper change (makeup gain removed).
 - **A/B comparison** of two sets of settings, saved with the project.
+- **RANDOM** button: draws every setting at random (Bypass and Delta kept).
 - **Presets**: 7 factory presets, and your own presets (save, replace, delete) shared by all
   projects and hosts.
 - **Meters**: input, maximizer and clipper gain reduction, output; transfer curve; a 3, 7 or 30 s

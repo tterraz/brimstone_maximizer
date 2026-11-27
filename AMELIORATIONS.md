@@ -138,6 +138,11 @@ L. **Courbe « maximizer » dans l'historique** : crête à l'entrée de l'écr�
    différence, ce qu'on entend). Sortie DSP `hist_max` ajoutée en dernier (indices des
    paramètres inchangés). Demande un nouveau numéro de version à la prochaine release.
 
+## Demandé le 2026-11-27
+M. **Bouton RANDOM** (en-tête, à l'emplacement du FREEZE de Tinplate) : tire au hasard les 13
+   réglages d'un préréglage (Bypass et Delta gardés) ; détail dans `LISEZMOI.md` (§ Interface).
+   Interface seule, DSP inchangé. Demande un nouveau numéro de version à la prochaine release.
+
 ## Écarté
 - **Mode limiteur** (relâchement long séparé de l'anticipation, attaque lissée, détection des crêtes
   entre échantillons) : refusé par l'utilisateur le 2026-11-24. Ne pas le reproposer.
