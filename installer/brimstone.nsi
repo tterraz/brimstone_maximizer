@@ -7,7 +7,7 @@ Unicode true
 !include "x64.nsh"
 
 !define NAME     "Brimstone Maximizer"
-!define VERSION  "1.1.0"
+!define VERSION  "1.2.0"
 !define BUNDLE   "brimstone_maximizer"
 !define MANUAL   "Brimstone-Maximizer-manuel.pdf"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\BrimstoneMaximizer"

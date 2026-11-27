@@ -136,12 +136,12 @@ L. **Courbe « maximizer » dans l'historique** : crête à l'entrée de l'écr�
    Mix et Gain), indépendante de l'écrêteur, de Delta, de Level match et de Bypass (test 8 de
    `test_dsp`) ; la courbe *output* reste la sortie du greffon (avec Delta : le niveau de la
    différence, ce qu'on entend). Sortie DSP `hist_max` ajoutée en dernier (indices des
-   paramètres inchangés). Demande un nouveau numéro de version à la prochaine release.
+   paramètres inchangés). Publié en 1.2.0 (2026-11-27).
 
 ## Demandé le 2026-11-27
 M. **Bouton RANDOM** (en-tête, à l'emplacement du FREEZE de Tinplate) : tire au hasard les 13
    réglages d'un préréglage (Bypass et Delta gardés) ; détail dans `LISEZMOI.md` (§ Interface).
-   Interface seule, DSP inchangé. Demande un nouveau numéro de version à la prochaine release.
+   Interface seule, DSP inchangé. Publié en 1.2.0 (2026-11-27).
 
 ## Écarté
 - **Mode limiteur** (relâchement long séparé de l'anticipation, attaque lissée, détection des crêtes

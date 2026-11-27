@@ -45,7 +45,7 @@ macOS is not built (no macOS machine available); the code is portable (DPF).
 
 ## Installation
 
-**Windows**: run `Brimstone-Maximizer-1.1.0-setup.exe` (VST3, optional CLAP and user manual).
+**Windows**: run `Brimstone-Maximizer-1.2.0-setup.exe` (VST3, optional CLAP and user manual).
 Manually: copy the `brimstone_maximizer.vst3` folder to `C:\Program Files\Common Files\VST3\` and
 `brimstone_maximizer.clap` to `C:\Program Files\Common Files\CLAP\`.
 

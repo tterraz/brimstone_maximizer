@@ -162,7 +162,7 @@ jamais dans `build.sh`. Préréglages de l'utilisateur dans les captures : préf
 2. tests du DSP (`tests/test_dsp.cpp`) ;
 3. Windows → `bin/windows/`, Linux → `bin/linux/` ;
 4. installateur Windows (`installer/brimstone.nsi`) si `makensis` est présent (`apt install nsis`)
-   → `bin/Brimstone-Maximizer-1.1.0-setup.exe` (VST3 imposé, CLAP et manuel PDF en option, cochés
+   → `bin/Brimstone-Maximizer-1.2.0-setup.exe` (VST3 imposé, CLAP et manuel PDF en option, cochés
    par défaut ; le manuel va dans `Program Files\Brimstone\Brimstone-Maximizer-manuel.pdf`, avec un
    raccourci dans le menu Démarrer pour tous les utilisateurs). Le PDF n'est pas refait par
    `build.sh` : recompiler `doc/manuel.tex` avant si le manuel a changé.
@@ -256,22 +256,25 @@ Améliorations : voir `AMELIORATIONS.md`.
   enregistrement d'un nom, A/B, durée de l'historique, pastille de thème ; rechargement d'un
   projet avec ses états A/B et historique) ; validateur VST3 Windows à relancer ; correctif à
   proposer à DPF.
-- **Release GitHub** (`v1.1.0` publiée le 2026-11-25, première publique) : `./build.sh` complet sur
+- **Releases GitHub** : `v1.1.0` (2026-11-25, première publique), `v1.2.0` (2026-11-27 : courbe
+  *maximizer*, RANDOM ; fichiers dans `build/release-1.2.0/`). Procédure : `./build.sh` complet sur
   `master` propre ; fichiers assemblés dans `build/release/` (non suivi) : installateur
   `bin/Brimstone-Maximizer-1.1.0-setup.exe`, `Brimstone-Maximizer-1.1.0-windows.zip` (VST3, CLAP),
   `Brimstone-Maximizer-1.1.0-linux-x86_64.tar.gz` (VST3, CLAP, LV2), chacun avec `COPYING` et le manuel, et le manuel
   seul `Brimstone-Maximizer-manuel.pdf` ; notes en anglais (`build/release/notes.md` : téléchargements,
   installation, essais faits et non faits, licence) ; étiquette annotée `v1.1.0` (auteur Claude) poussée,
   puis `/usr/bin/gh release create v1.1.0 --repo tterraz/brimstone_maximizer --title ... --notes-file notes.md <fichiers>`
-  (`gh` hors du PATH du bac à sable, déjà connecté au compte `tterraz`). **La version 1.1.0 est
+  (`gh` hors du PATH du bac à sable, déjà connecté au compte `tterraz`). Avant : captures de
+  `doc/captures/` refaites si l'interface a changé, manuel recompilé, validateur VST3 Linux
+  (47/47), installation silencieuse (`/S`) sous Wine dans un préfixe neuf. **La version 1.2.0 est
   publiée** : tout changement livré ensuite demande un nouveau numéro (`getVersion`, installateur,
   documents ; choix de l'utilisateur).
-- Depuis la release 1.1.0 : courbe *maximizer* de l'historique (2026-11-26, `18797c9`, point L
-  d'`AMELIORATIONS.md`), non publiée (pas de release pour le moment, décision) ; à la prochaine
-  release : nouveau numéro, captures de `doc/captures/` à refaire (légende à trois courbes).
-  Puis bouton RANDOM (2026-11-27, point M) : vu à l'écran sous Wine (en-tête, bulle d'aide),
-  tirage non essayé au clic (aucun clic automatisé possible ici) ; les captures montreront aussi
-  le nouvel en-tête. Zone de bulle d'aide RANDOM : 118 (`-DBRIMSTONE_UI_DEMO=118`).
+- 1.2.0 (2026-11-27) : courbe *maximizer* de l'historique (`18797c9`, point L
+  d'`AMELIORATIONS.md`) et bouton RANDOM (`9f2cdbc`, point M) ; captures refaites (légende à
+  trois courbes, nouvel en-tête). RANDOM vu à l'écran sous Wine (en-tête, bulle d'aide), tirage
+  non essayé au clic (aucun clic automatisé possible ici). Zone de bulle d'aide RANDOM : 118
+  (`-DBRIMSTONE_UI_DEMO=118`). Captures de la liste : préréglage 2, `_MENU=10`, `_ARM=1` (Ember)
+  et `_NAME='"bright"'` (Ash), recadrées x 300-630 (420 + 140 points de haut) et empilées.
 - Version : restée 1.1.0 malgré les ajouts du 2026-11-25 (décision de l'utilisateur : le
   logiciel n'avait jamais été utilisé), puis publiée telle quelle. Les réglages des projets sont
   relus par symbole : ajouter un paramètre plus tard ne casse pas un projet.
