@@ -257,14 +257,15 @@ Améliorations : voir `AMELIORATIONS.md`.
   enregistrement d'un nom, A/B, durée de l'historique, pastille de thème ; rechargement d'un
   projet avec ses états A/B et historique) ; validateur VST3 Windows à relancer ; correctif à
   proposer à DPF.
-- **Releases GitHub** : `v1.1.0` (2026-11-25, première publique), `v1.2.0` (2026-11-27 : courbe
+- **Releases GitHub** (seule la dernière est gardée, étiquettes gardées ; `v1.1.0` supprimée le 2026-11-27) :
+  `v1.1.0` (2026-11-25, première publique), `v1.2.0` (2026-11-27 : courbe
   *maximizer*, RANDOM ; fichiers dans `build/release-1.2.0/`). Procédure : `./build.sh` complet sur
   `master` propre ; fichiers assemblés dans `build/release/` (non suivi) : installateur
   `bin/Brimstone-Maximizer-1.1.0-setup.exe`, `Brimstone-Maximizer-1.1.0-windows.zip` (VST3, CLAP),
   `Brimstone-Maximizer-1.1.0-linux-x86_64.tar.gz` (VST3, CLAP, LV2), chacun avec `COPYING` et le manuel, et le manuel
   seul `Brimstone-Maximizer-manuel.pdf` ; notes en anglais (`build/release/notes.md` : téléchargements,
   installation, essais faits et non faits, licence) ; étiquette annotée `v1.1.0` (auteur Claude) poussée,
-  puis `/usr/bin/gh release create v1.1.0 --repo tterraz/brimstone_maximizer --title ... --notes-file notes.md <fichiers>`
+  puis `/usr/bin/gh release create v1.1.0 --repo tterraz-vibe-audio/brimstone_maximizer --title ... --notes-file notes.md <fichiers>`
   (`gh` hors du PATH du bac à sable, déjà connecté au compte `tterraz`). Avant : captures de
   `doc/captures/` refaites si l'interface a changé, manuel recompilé, validateur VST3 Linux
   (47/47), installation silencieuse (`/S`) sous Wine dans un préfixe neuf. **La version 1.2.0 est
