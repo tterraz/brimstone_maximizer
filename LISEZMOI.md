@@ -221,7 +221,8 @@ Améliorations : voir `AMELIORATIONS.md`.
 
 ## Pour reprendre
 - Dépôt git dans ce dossier (créé en session 64), distant `origin` =
-  `git@github.com:tterraz/brimstone_maximizer.git` (ajouté par l'utilisateur le 2026-11-25,
+  `git@github.com:tterraz-vibe-audio/brimstone_maximizer.git` (ajouté par l'utilisateur le 2026-11-25 ;
+  transféré du compte `tterraz` à l'organisation `tterraz-vibe-audio` le 2026-11-27, l'ancienne adresse redirige ;
   `master` poussé et suivi ; push sur demande, auteur et committer Claude) ; `dpf/`, `build*/`, `bin/` non suivis (`dpf/`
   est un clone de DPF portant le correctif de `patches/`, refait par `build.sh`).
 - `./build.sh` refait tout (tests, Windows, Linux, installateur si `makensis`).
